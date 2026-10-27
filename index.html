@@ -2,14 +2,18 @@
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Compound Interest & Post-Tax Growth Calculator</title>
-  <meta name="description" content="Modern, responsive compound interest calculator inspired by thecalculatorsite.com with post-tax compounding, recurring contributions, step-up deposits, and interactive charts.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  <meta name="theme-color" content="#090d16" id="themeColorMeta">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>CompoundPro • Compound Interest & Tax-Withholding Simulator</title>
+  <meta name="description" content="Precision compound interest calculator optimized for mobile phones, foldables, tablets, laptops, and ultra-wide desktop PCs with post-tax compounding, recurring contributions, step-up deposits, and interactive charts.">
   
   <!-- Google Fonts: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -17,10 +21,20 @@
     tailwind.config = {
       darkMode: 'class',
       theme: {
+        screens: {
+          'fold': '280px',
+          'xs': '360px',
+          'sm': '640px',
+          'md': '768px',
+          'tablet': '834px',
+          'lg': '1024px',
+          'xl': '1280px',
+          '2xl': '1536px',
+        },
         extend: {
           fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace'],
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
           },
           colors: {
             slate: {
@@ -46,6 +60,18 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
+    /* Safe Area Insets for iOS & Android Edge-to-edge / notches */
+    :root {
+      --sat: env(safe-area-inset-top, 0px);
+      --sab: env(safe-area-inset-bottom, 0px);
+      --sal: env(safe-area-inset-left, 0px);
+      --sar: env(safe-area-inset-right, 0px);
+    }
+    .pt-safe { padding-top: var(--sat); }
+    .pb-safe { padding-bottom: var(--sab); }
+    .pl-safe { padding-left: var(--sal); }
+    .pr-safe { padding-right: var(--sar); }
+
     /* Custom Scrollbars */
     ::-webkit-scrollbar {
       width: 6px;
@@ -68,6 +94,22 @@
       background: rgba(148, 163, 184, 0.5);
     }
 
+    /* Hide scrollbars for horizontal chip bars */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Prevent auto-zooming on focus in iOS / Android */
+    @media (max-width: 640px) {
+      input[type=number], input[type=text], select {
+        font-size: 16px !important;
+      }
+    }
+
     /* Remove number spinners */
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button {
@@ -78,13 +120,14 @@
       -moz-appearance: textfield;
     }
 
-    /* Custom Range Slider */
+    /* Custom Touch-Friendly Range Slider */
     input[type=range] {
       -webkit-appearance: none;
-      height: 6px;
-      border-radius: 3px;
+      height: 8px;
+      border-radius: 4px;
       background: #334155;
       outline: none;
+      touch-action: pan-x;
     }
     .dark input[type=range] {
       background: #334155;
@@ -95,17 +138,17 @@
     input[type=range]::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 18px;
-      height: 18px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
       background: #3b82f6;
       cursor: pointer;
       border: 2px solid #ffffff;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
       transition: transform 0.15s ease, background-color 0.15s ease;
     }
-    input[type=range]::-webkit-slider-thumb:hover {
-      transform: scale(1.15);
+    input[type=range]:active::-webkit-slider-thumb {
+      transform: scale(1.2);
       background: #2563eb;
     }
 
@@ -115,9 +158,56 @@
       overflow: hidden;
     }
 
-    /* Table styles */
+    /* Table styles & Sticky Frozen 1st Column */
     .table-container {
       scrollbar-width: thin;
+      -webkit-overflow-scrolling: touch;
+    }
+    .sticky-col {
+      position: sticky;
+      left: 0;
+      z-index: 10;
+    }
+    .dark .sticky-col {
+      background-color: #0f172a;
+    }
+    html:not(.dark) .sticky-col {
+      background-color: #ffffff;
+    }
+    thead .sticky-col {
+      z-index: 20;
+    }
+    .dark thead .sticky-col {
+      background-color: #141e30;
+    }
+    html:not(.dark) thead .sticky-col {
+      background-color: #f1f5f9;
+    }
+    tfoot .sticky-col {
+      z-index: 20;
+    }
+    .dark tfoot .sticky-col {
+      background-color: #141e30;
+    }
+    html:not(.dark) tfoot .sticky-col {
+      background-color: #f1f5f9;
+    }
+
+    /* Forced Device Preview Modes for Cross-Testing */
+    .device-mobile-active {
+      max-width: 440px !important;
+      margin: 0 auto;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      border-radius: 28px;
+      border: 4px solid #334155;
+      overflow: hidden;
+    }
+    .device-tablet-active {
+      max-width: 860px !important;
+      margin: 0 auto;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      border-radius: 24px;
+      border: 3px solid #334155;
     }
 
     /* Print Styles */
@@ -126,7 +216,7 @@
         background: #ffffff !important;
         color: #000000 !important;
       }
-      .no-print, header, .table-pagination, #toastNotification {
+      .no-print, header, nav, #mobileTabBar, #mobileFloatingBar, .table-pagination, #toastNotification, #presetsModal {
         display: none !important;
       }
       .print-only {
@@ -136,7 +226,7 @@
         max-height: none !important;
         overflow: visible !important;
       }
-      .shadow-lg, .shadow-xl, .shadow-sm {
+      .shadow-lg, .shadow-xl, .shadow-sm, .shadow-2xl {
         box-shadow: none !important;
       }
       .border {
@@ -150,118 +240,133 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-brand-500 selection:text-white transition-colors duration-200">
 
-  <!-- Top Sticky Navigation Bar -->
-  <header class="sticky top-0 z-40 w-full backdrop-blur-md bg-slate-900/85 dark:bg-slate-900/85 border-b border-slate-800 dark:border-slate-800 transition-colors duration-200">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+  <!-- Top Sticky Responsive Navigation Bar -->
+  <header class="sticky top-0 z-40 w-full backdrop-blur-md bg-slate-900/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 transition-colors duration-200 pt-safe">
+    <div class="max-w-7xl 2xl:max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
       
-      <!-- Logo and Brand -->
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-brand-500/20 text-white font-extrabold text-xl">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+      <!-- Brand & Title -->
+      <div class="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-brand-500/20 text-white font-extrabold text-lg flex-shrink-0">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
           </svg>
         </div>
-        <div>
-          <div class="flex items-center space-x-2">
-            <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-1">
+        <div class="min-w-0">
+          <div class="flex items-center space-x-1.5 sm:space-x-2">
+            <h1 class="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white truncate">
               <span>Compound</span><span class="text-brand-500">Pro</span>
             </h1>
-            <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">
-              Tax-Withholding Engine
-            </span>
           </div>
-          <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Inspired by TheCalculatorSite • High-Precision Deterministic Simulator</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 hidden md:block truncate">Precision Post-Tax & Deterministic Simulator</p>
         </div>
       </div>
 
       <!-- Quick Action Controls -->
-      <div class="flex items-center space-x-2 sm:space-x-3">
+      <div class="flex items-center space-x-1.5 sm:space-x-2.5">
         
-        <!-- Preset Scenarios Dropdown -->
+        <!-- Device UI Mode Switcher (Allows testing & switching optimal UI layout) -->
         <div class="relative">
-          <button id="scenarioMenuBtn" class="flex items-center space-x-1.5 text-xs font-medium px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-brand-500 dark:text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
-            </svg>
-            <span class="hidden md:inline font-semibold">Presets</span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-            </svg>
+          <button id="deviceModeBtn" class="flex items-center space-x-1 text-xs font-semibold px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition" title="Change Device UI Mode">
+            <span id="deviceModeIcon">⚡</span>
+            <span id="deviceModeLabel" class="hidden sm:inline font-medium text-[11px]">Auto</span>
+            <svg class="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
           </button>
           
-          <!-- Dropdown Menu -->
-          <div id="scenarioDropdown" class="hidden absolute right-0 mt-2 w-72 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl py-2 z-50 text-xs">
-            <div class="px-3.5 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Financial Scenarios</div>
-            <button onclick="loadScenario('sp500')" class="w-full text-left px-3.5 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-slate-800 dark:text-slate-200 transition">
-              <div>
-                <div class="font-semibold text-brand-600 dark:text-brand-400">S&P 500 Index Fund</div>
-                <div class="text-[11px] text-slate-500 dark:text-slate-400">$10k start, $500/mo, 10% APR, 15% Tax</div>
-              </div>
+          <div id="deviceModeDropdown" class="hidden absolute right-0 mt-2 w-56 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl p-1.5 z-50 text-xs">
+            <div class="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Device UI Layout</div>
+            <button onclick="setDeviceMode('auto')" class="w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 transition font-medium">
+              <span class="flex items-center gap-2"><span>⚡</span> Auto (Responsive)</span>
+              <span class="dev-check text-brand-500 font-bold" data-mode="auto">✓</span>
             </button>
-            <button onclick="loadScenario('hysa')" class="w-full text-left px-3.5 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-slate-800 dark:text-slate-200 transition">
-              <div>
-                <div class="font-semibold text-emerald-600 dark:text-emerald-400">High-Yield Savings (Daily)</div>
-                <div class="text-[11px] text-slate-500 dark:text-slate-400">$20k start, $1k/mo, 4.5% APR Daily, 24% Tax</div>
-              </div>
+            <button onclick="setDeviceMode('mobile')" class="w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 transition font-medium">
+              <span class="flex items-center gap-2"><span>📱</span> Mobile App UI</span>
+              <span class="dev-check text-brand-500 font-bold hidden" data-mode="mobile">✓</span>
             </button>
-            <button onclick="loadScenario('nestEgg')" class="w-full text-left px-3.5 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-slate-800 dark:text-slate-200 transition">
-              <div>
-                <div class="font-semibold text-indigo-600 dark:text-indigo-400">30-Year Retirement Nest Egg</div>
-                <div class="text-[11px] text-slate-500 dark:text-slate-400">$50k start, $750/mo + 3% step-up, 8% APR</div>
-              </div>
+            <button onclick="setDeviceMode('tablet')" class="w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 transition font-medium">
+              <span class="flex items-center gap-2"><span>📖</span> Tablet / Foldable</span>
+              <span class="dev-check text-brand-500 font-bold hidden" data-mode="tablet">✓</span>
             </button>
-            <button onclick="loadScenario('dividend')" class="w-full text-left px-3.5 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-slate-800 dark:text-slate-200 transition">
-              <div>
-                <div class="font-semibold text-amber-600 dark:text-amber-400">Dividend Portfolio (Quarterly)</div>
-                <div class="text-[11px] text-slate-500 dark:text-slate-400">$25k start, 6.5% APR Quarterly, $400/mo</div>
-              </div>
+            <button onclick="setDeviceMode('desktop')" class="w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 transition font-medium">
+              <span class="flex items-center gap-2"><span>💻</span> Desktop Dashboard</span>
+              <span class="dev-check text-brand-500 font-bold hidden" data-mode="desktop">✓</span>
             </button>
           </div>
         </div>
 
+        <!-- Presets Button (Opens Modal / Bottom Sheet) -->
+        <button id="scenarioMenuBtn" class="flex items-center space-x-1.5 text-xs font-semibold px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          <span class="hidden xs:inline">Presets</span>
+        </button>
+
         <!-- Reset Button -->
-        <button id="resetBtn" title="Reset parameters to defaults" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <button id="resetBtn" title="Reset parameters to defaults" class="p-2 sm:p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
         </button>
 
         <!-- Dark/Light Theme Toggle -->
-        <button id="themeToggleBtn" title="Toggle Dark/Light Mode" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition">
-          <svg id="sunIcon" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 hidden text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <button id="themeToggleBtn" title="Toggle Dark/Light Mode" class="p-2 sm:p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition">
+          <svg id="sunIcon" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 sm:w-4 sm:h-4 hidden text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 9h-1m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
           </svg>
-          <svg id="moonIcon" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg id="moonIcon" xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
           </svg>
         </button>
 
         <!-- Prominent Calculate Button -->
-        <button id="calculateMainBtn" class="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 active:scale-95 text-white font-semibold text-xs shadow-md shadow-brand-600/30 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+        <button id="calculateMainBtn" class="flex items-center space-x-1 sm:space-x-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-brand-600 hover:bg-brand-500 active:scale-95 text-white font-bold text-xs shadow-md shadow-brand-600/30 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
           </svg>
-          <span>Calculate</span>
+          <span class="hidden xs:inline">Calculate</span>
         </button>
+
       </div>
 
     </div>
   </header>
 
+  <!-- Mobile Segmented Tab Navigation Bar (Visible on mobile/tablet or forced mobile mode) -->
+  <nav id="mobileTabBar" class="sticky top-16 z-30 w-full bg-slate-900/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-2 sm:px-4 py-1.5 transition-colors lg:hidden">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-1 sm:gap-2">
+      <button onclick="switchMobileTab('inputs')" id="tabNavInputs" class="flex-1 py-2 px-2 rounded-xl text-center text-xs font-bold transition flex items-center justify-center gap-1.5 bg-brand-600 text-white shadow-sm">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+        <span>Inputs</span>
+      </button>
+      <button onclick="switchMobileTab('analytics')" id="tabNavAnalytics" class="flex-1 py-2 px-2 rounded-xl text-center text-xs font-semibold transition flex items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+        <span>Analytics</span>
+      </button>
+      <button onclick="switchMobileTab('schedule')" id="tabNavSchedule" class="flex-1 py-2 px-2 rounded-xl text-center text-xs font-semibold transition flex items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span>Schedule</span>
+      </button>
+      <button onclick="switchMobileTab('compare')" id="tabNavCompare" class="flex-1 py-2 px-2 rounded-xl text-center text-xs font-semibold transition flex items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        <span>Compare</span>
+      </button>
+    </div>
+  </nav>
+
   <!-- Main Container -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+  <main id="mainAppContainer" class="max-w-7xl 2xl:max-w-[1600px] mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 lg:pb-12 transition-all">
+    <div id="layoutGrid" class="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
       
-      <!-- ========================================== -->
-      <!-- LEFT COLUMN: CONTROLS & INPUTS (lg:col-span-5) -->
-      <!-- ========================================== -->
-      <div class="lg:col-span-5 space-y-5">
+      <!-- ======================================================== -->
+      <!-- LEFT COLUMN: CONTROLS & INPUTS (lg:col-span-5)           -->
+      <!-- ======================================================== -->
+      <div id="sectionInputs" class="lg:col-span-5 space-y-4 sm:space-y-5 lg:sticky lg:top-20 lg:max-h-[calc(100vh-5.5rem)] lg:overflow-y-auto pr-0 lg:pr-1">
         
         <!-- CARD 1: CORE INVESTMENT PARAMETERS -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl relative overflow-hidden transition-colors">
-          <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-            <div class="flex items-center space-x-2.5">
-              <div class="w-7 h-7 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center font-bold text-xs">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden transition-colors">
+          <div class="flex items-center justify-between mb-3.5 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center space-x-2">
+              <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center font-bold text-xs">
                 1
               </div>
               <h2 class="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-slate-200">Investment Setup</h2>
@@ -270,15 +375,16 @@
             <!-- Currency Selector -->
             <div class="flex items-center space-x-1.5">
               <label for="currencySelect" class="text-xs text-slate-500 dark:text-slate-400 font-medium">Currency:</label>
-              <select id="currencySelect" class="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-lg px-2.5 py-1 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+              <select id="currencySelect" class="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-lg px-2 py-1 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
                 <option value="$" selected>$ (USD)</option>
                 <option value="€">€ (EUR)</option>
                 <option value="£">£ (GBP)</option>
+                <option value="₨">₨ (PKR)</option>
                 <option value="₹">₹ (INR)</option>
                 <option value="¥">¥ (JPY)</option>
                 <option value="custom">Custom...</option>
               </select>
-              <input type="text" id="customCurrencyInput" placeholder="Symbol" maxlength="4" class="hidden w-16 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs rounded-lg px-2 py-1 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 text-center font-mono">
+              <input type="text" id="customCurrencyInput" placeholder="Symbol" maxlength="4" class="hidden w-14 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs rounded-lg px-2 py-1 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 text-center font-mono">
             </div>
           </div>
 
@@ -290,20 +396,26 @@
                 <span class="text-[11px] text-slate-500 dark:text-slate-400 font-mono font-medium" id="principalFormattedDisplay">$10,000.00</span>
               </div>
               <div class="relative rounded-xl shadow-sm">
-                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-mono font-bold curr-symbol">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-mono font-bold curr-symbol text-sm">
                   $
                 </div>
-                <input type="number" id="principalInput" value="10000" min="0" step="500" class="w-full bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 font-mono font-medium text-sm rounded-xl pl-9 pr-3 py-2.5 border border-slate-300 dark:border-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
+                <input type="number" inputmode="decimal" id="principalInput" value="10000" min="0" step="500" class="w-full bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 font-mono font-semibold text-sm sm:text-base rounded-xl pl-9 pr-24 py-2.5 border border-slate-300 dark:border-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
+                <!-- Stepper Buttons for Mobile/Desktop Touch -->
+                <div class="absolute inset-y-1 right-1 flex items-center space-x-1">
+                  <button type="button" onclick="adjustPrincipal(-1000)" class="h-full px-2 rounded-lg bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-650 text-slate-700 dark:text-slate-200 font-bold text-xs transition" title="Decrease $1,000">-1k</button>
+                  <button type="button" onclick="adjustPrincipal(1000)" class="h-full px-2 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 font-bold text-xs transition" title="Increase $1,000">+1k</button>
+                </div>
               </div>
               
-              <!-- Quick Principal Presets -->
-              <div class="flex flex-wrap gap-1.5 mt-2">
-                <button type="button" onclick="setPrincipal(1000)" class="text-[11px] px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 transition font-mono">+1k</button>
-                <button type="button" onclick="setPrincipal(5000)" class="text-[11px] px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 transition font-mono">+5k</button>
-                <button type="button" onclick="setPrincipal(10000)" class="text-[11px] px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 transition font-mono">+10k</button>
-                <button type="button" onclick="setPrincipal(25000)" class="text-[11px] px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 transition font-mono">+25k</button>
-                <button type="button" onclick="setPrincipal(50000)" class="text-[11px] px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 transition font-mono">+50k</button>
-                <button type="button" onclick="setPrincipal(100000)" class="text-[11px] px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 transition font-mono">+100k</button>
+              <!-- Quick Principal Presets (Horizontal Scrollable Chips) -->
+              <div class="flex items-center space-x-1.5 mt-2 overflow-x-auto no-scrollbar py-0.5">
+                <button type="button" onclick="setPrincipal(1000)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 transition font-mono whitespace-nowrap">$1k</button>
+                <button type="button" onclick="setPrincipal(5000)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 transition font-mono whitespace-nowrap">$5k</button>
+                <button type="button" onclick="setPrincipal(10000)" class="text-[11px] px-2.5 py-1 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/30 transition font-mono font-bold whitespace-nowrap">$10k</button>
+                <button type="button" onclick="setPrincipal(25000)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 transition font-mono whitespace-nowrap">$25k</button>
+                <button type="button" onclick="setPrincipal(50000)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 transition font-mono whitespace-nowrap">$50k</button>
+                <button type="button" onclick="setPrincipal(100000)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 transition font-mono whitespace-nowrap">$100k</button>
+                <button type="button" onclick="setPrincipal(250000)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 transition font-mono whitespace-nowrap">$250k</button>
               </div>
             </div>
 
@@ -312,9 +424,10 @@
               <div class="sm:col-span-7">
                 <label for="interestRateInput" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Interest Rate (%)</label>
                 <div class="relative rounded-xl shadow-sm">
-                  <input type="number" id="interestRateInput" value="7.0" min="0" max="100" step="0.1" class="w-full bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 font-mono font-medium text-sm rounded-xl pl-3.5 pr-8 py-2.5 border border-slate-300 dark:border-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
-                  <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400 font-bold">
-                    %
+                  <input type="number" inputmode="decimal" id="interestRateInput" value="7.0" min="0" max="100" step="0.1" class="w-full bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 font-mono font-semibold text-sm sm:text-base rounded-xl pl-3.5 pr-20 py-2.5 border border-slate-300 dark:border-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
+                  <div class="absolute inset-y-1 right-1 flex items-center space-x-1">
+                    <button type="button" onclick="adjustRate(-0.5)" class="h-full px-1.5 rounded-lg bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-[11px] transition">-0.5</button>
+                    <button type="button" onclick="adjustRate(0.5)" class="h-full px-1.5 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 font-bold text-[11px] transition">+0.5</button>
                   </div>
                 </div>
               </div>
@@ -328,8 +441,10 @@
                 </select>
               </div>
             </div>
-            <div id="rateEquivalentNote" class="text-[11px] text-slate-500 dark:text-slate-400">
-              Nominal Annual APR: <span class="font-mono text-emerald-600 dark:text-emerald-400 font-bold" id="nominalAprDisplay">7.00%</span>
+            
+            <div id="rateEquivalentNote" class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
+              <span>Nominal Annual APR:</span>
+              <span class="font-mono text-emerald-600 dark:text-emerald-400 font-bold" id="nominalAprDisplay">7.00%</span>
             </div>
 
             <!-- Compounding Frequency -->
@@ -357,27 +472,26 @@
                 <span class="text-[11px] text-brand-600 dark:text-brand-400 font-mono font-bold" id="totalDurationDisplay">10 Years (120 Months)</span>
               </div>
               
-              <div class="grid grid-cols-2 gap-3 mb-2">
+              <div class="grid grid-cols-2 gap-2.5 mb-2">
                 <div class="relative">
-                  <input type="number" id="yearsInput" value="10" min="0" max="100" class="w-full bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 font-mono text-xs rounded-xl pl-3 pr-12 py-2 border border-slate-300 dark:border-slate-700 focus:border-brand-500 outline-none">
+                  <input type="number" inputmode="numeric" id="yearsInput" value="10" min="0" max="100" class="w-full bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 font-mono font-semibold text-sm rounded-xl pl-3 pr-12 py-2 border border-slate-300 dark:border-slate-700 focus:border-brand-500 outline-none">
                   <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-slate-400 pointer-events-none font-medium">Years</span>
                 </div>
                 <div class="relative">
-                  <input type="number" id="monthsInput" value="0" min="0" max="11" class="w-full bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 font-mono text-xs rounded-xl pl-3 pr-14 py-2 border border-slate-300 dark:border-slate-700 focus:border-brand-500 outline-none">
+                  <input type="number" inputmode="numeric" id="monthsInput" value="0" min="0" max="11" class="w-full bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 font-mono font-semibold text-sm rounded-xl pl-3 pr-14 py-2 border border-slate-300 dark:border-slate-700 focus:border-brand-500 outline-none">
                   <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-slate-400 pointer-events-none font-medium">Months</span>
                 </div>
               </div>
 
               <!-- Quick Year Presets -->
-              <div class="flex flex-wrap gap-1.5">
-                <button type="button" onclick="setYears(1)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">1Y</button>
-                <button type="button" onclick="setYears(3)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">3Y</button>
-                <button type="button" onclick="setYears(5)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">5Y</button>
-                <button type="button" onclick="setYears(10)" class="text-[10px] px-2 py-0.5 rounded bg-brand-500/10 text-brand-600 dark:text-brand-300 border border-brand-500/30 font-semibold">10Y</button>
-                <button type="button" onclick="setYears(15)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">15Y</button>
-                <button type="button" onclick="setYears(20)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">20Y</button>
-                <button type="button" onclick="setYears(25)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">25Y</button>
-                <button type="button" onclick="setYears(30)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">30Y</button>
+              <div class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-0.5">
+                <button type="button" onclick="setYears(1)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 font-mono">1Y</button>
+                <button type="button" onclick="setYears(3)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 font-mono">3Y</button>
+                <button type="button" onclick="setYears(5)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 font-mono">5Y</button>
+                <button type="button" onclick="setYears(10)" class="text-[11px] px-2.5 py-1 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/30 font-mono font-bold">10Y</button>
+                <button type="button" onclick="setYears(15)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 font-mono">15Y</button>
+                <button type="button" onclick="setYears(20)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 font-mono">20Y</button>
+                <button type="button" onclick="setYears(30)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 font-mono">30Y</button>
               </div>
             </div>
 
@@ -385,9 +499,9 @@
         </div>
 
         <!-- CARD 2: REGULAR CONTRIBUTIONS / WITHDRAWALS -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl transition-colors">
-          <div class="flex items-center space-x-2.5 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-            <div class="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl transition-colors">
+          <div class="flex items-center space-x-2 mb-3.5 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+            <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs">
               2
             </div>
             <h2 class="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-slate-200">Regular Contributions</h2>
@@ -399,30 +513,34 @@
             <div class="grid grid-cols-3 gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-medium text-center">
               <label class="cursor-pointer">
                 <input type="radio" name="contribType" value="none" class="sr-only peer">
-                <div class="py-1.5 rounded-lg text-slate-500 dark:text-slate-400 peer-checked:bg-white dark:peer-checked:bg-slate-700 peer-checked:text-slate-900 dark:peer-checked:text-white peer-checked:shadow-sm transition">None</div>
+                <div class="py-2 rounded-lg text-slate-500 dark:text-slate-400 peer-checked:bg-white dark:peer-checked:bg-slate-700 peer-checked:text-slate-900 dark:peer-checked:text-white peer-checked:shadow-sm transition">None</div>
               </label>
               <label class="cursor-pointer">
                 <input type="radio" name="contribType" value="deposit" checked class="sr-only peer">
-                <div class="py-1.5 rounded-lg text-slate-500 dark:text-slate-400 peer-checked:bg-brand-600 peer-checked:text-white transition font-bold shadow-sm">Deposits (+)</div>
+                <div class="py-2 rounded-lg text-slate-500 dark:text-slate-400 peer-checked:bg-brand-600 peer-checked:text-white transition font-bold shadow-sm">Deposits (+)</div>
               </label>
               <label class="cursor-pointer">
                 <input type="radio" name="contribType" value="withdrawal" class="sr-only peer">
-                <div class="py-1.5 rounded-lg text-slate-500 dark:text-slate-400 peer-checked:bg-rose-600 peer-checked:text-white transition font-bold shadow-sm">Withdrawals (-)</div>
+                <div class="py-2 rounded-lg text-slate-500 dark:text-slate-400 peer-checked:bg-rose-600 peer-checked:text-white transition font-bold shadow-sm">Withdrawals (-)</div>
               </label>
             </div>
           </div>
 
-          <!-- Dynamic Contribution Inputs (Hidden if 'none') -->
+          <!-- Dynamic Contribution Inputs -->
           <div id="contribFieldsWrapper" class="space-y-4">
             <!-- Amount & Frequency -->
             <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
               <div class="sm:col-span-7">
                 <label for="contribAmountInput" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Amount</label>
                 <div class="relative rounded-xl shadow-sm">
-                  <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-mono font-bold curr-symbol">
+                  <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-mono font-bold curr-symbol text-sm">
                     $
                   </div>
-                  <input type="number" id="contribAmountInput" value="500" min="0" step="50" class="w-full bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 font-mono font-medium text-sm rounded-xl pl-9 pr-3 py-2.5 border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition">
+                  <input type="number" inputmode="decimal" id="contribAmountInput" value="500" min="0" step="50" class="w-full bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 font-mono font-semibold text-sm sm:text-base rounded-xl pl-9 pr-20 py-2.5 border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition">
+                  <div class="absolute inset-y-1 right-1 flex items-center space-x-1">
+                    <button type="button" onclick="adjustContrib(-50)" class="h-full px-1.5 rounded-lg bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-[11px] transition">-50</button>
+                    <button type="button" onclick="adjustContrib(50)" class="h-full px-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[11px] transition">+50</button>
+                  </div>
                 </div>
               </div>
               <div class="sm:col-span-5">
@@ -439,48 +557,42 @@
             </div>
 
             <!-- Quick Contribution Presets -->
-            <div class="flex flex-wrap gap-1.5">
-              <button type="button" onclick="setContribAmount(100)" class="text-[11px] px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">100</button>
-              <button type="button" onclick="setContribAmount(250)" class="text-[11px] px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">250</button>
-              <button type="button" onclick="setContribAmount(500)" class="text-[11px] px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">500</button>
-              <button type="button" onclick="setContribAmount(1000)" class="text-[11px] px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">1,000</button>
-              <button type="button" onclick="setContribAmount(2000)" class="text-[11px] px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">2,000</button>
+            <div class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-0.5">
+              <button type="button" onclick="setContribAmount(100)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 font-mono">100</button>
+              <button type="button" onclick="setContribAmount(250)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 font-mono">250</button>
+              <button type="button" onclick="setContribAmount(500)" class="text-[11px] px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 font-mono font-bold">500</button>
+              <button type="button" onclick="setContribAmount(1000)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 font-mono">1,000</button>
+              <button type="button" onclick="setContribAmount(2000)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 font-mono">2,000</button>
             </div>
 
-            <!-- Timing (Beginning vs End) -->
+            <!-- Contribution Timing -->
             <div>
-              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Deposit / Withdrawal Timing</label>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Contribution Timing</label>
               <div class="grid grid-cols-2 gap-2">
                 <label class="flex items-center p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                  <input type="radio" name="contribTiming" value="end" checked class="text-indigo-600 focus:ring-0 mr-2.5">
-                  <div>
-                    <div class="text-xs font-semibold text-slate-800 dark:text-slate-200">End of Period</div>
-                    <div class="text-[10px] text-slate-500 dark:text-slate-400">Ordinary Annuity</div>
-                  </div>
+                  <input type="radio" name="contribTiming" value="end" checked class="text-indigo-600 focus:ring-0 mr-2">
+                  <span class="text-xs text-slate-800 dark:text-slate-200 font-medium">End of period</span>
                 </label>
                 <label class="flex items-center p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                  <input type="radio" name="contribTiming" value="beginning" class="text-indigo-600 focus:ring-0 mr-2.5">
-                  <div>
-                    <div class="text-xs font-semibold text-slate-800 dark:text-slate-200">Beginning of Period</div>
-                    <div class="text-[10px] text-slate-500 dark:text-slate-400">Annuity Due (compounds sooner)</div>
-                  </div>
+                  <input type="radio" name="contribTiming" value="beginning" class="text-indigo-600 focus:ring-0 mr-2">
+                  <span class="text-xs text-slate-800 dark:text-slate-200 font-medium">Start of period</span>
                 </label>
               </div>
             </div>
 
-            <!-- Annual Contribution Step-Up (%) -->
-            <div>
+            <!-- Annual Contribution Step-Up -->
+            <div class="pt-2 border-t border-slate-100 dark:border-slate-800">
               <div class="flex justify-between items-center mb-1">
-                <label for="stepUpInput" class="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                  <span>Annual Step-Up Rate</span>
-                  <span class="text-slate-400 cursor-help" title="Automatically escalates contribution amount by this percentage every 12 months (e.g. to match salary inflation).">ⓘ</span>
+                <label for="stepUpInput" class="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <span>Annual Deposit Step-Up</span>
+                  <span class="text-[10px] text-slate-400 font-normal">(Inflation Hedge)</span>
                 </label>
                 <span class="text-[11px] text-indigo-600 dark:text-indigo-400 font-mono font-bold" id="stepUpDisplay">0.0% / yr</span>
               </div>
               <div class="flex items-center space-x-3">
                 <input type="range" id="stepUpSlider" min="0" max="15" step="0.5" value="0" class="w-full">
                 <div class="relative w-20 flex-shrink-0">
-                  <input type="number" id="stepUpInput" value="0" min="0" max="50" step="0.5" class="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-mono text-xs rounded-lg px-2 py-1.5 pr-5 border border-slate-300 dark:border-slate-700 text-right">
+                  <input type="number" inputmode="decimal" id="stepUpInput" value="0" min="0" max="50" step="0.5" class="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-mono text-xs rounded-xl px-2 py-1.5 pr-5 border border-slate-300 dark:border-slate-700 text-right">
                   <span class="absolute inset-y-0 right-0 pr-2 flex items-center text-xs text-slate-400 pointer-events-none">%</span>
                 </div>
               </div>
@@ -489,16 +601,16 @@
           </div>
         </div>
 
-        <!-- CARD 3: POST-TAX COMPOUNDING & WITHHOLDING -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl relative overflow-hidden transition-all duration-300">
-          <div class="flex items-center justify-between mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-            <div class="flex items-center space-x-2.5">
-              <div class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold text-xs">
+        <!-- CARD 3: TAX WITHHOLDING ON INTEREST -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl transition-colors">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center space-x-2">
+              <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold text-xs">
                 3
               </div>
               <div>
                 <h2 class="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-slate-200">Tax Withholding on Interest</h2>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400">Model post-tax compounding velocity and tax drag</p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">Post-tax compounding velocity & tax drag</p>
               </div>
             </div>
 
@@ -510,7 +622,7 @@
           </div>
 
           <!-- Tax Inputs (Expandable) -->
-          <div id="taxDetailsSection" class="expandable-section space-y-4 max-h-0 opacity-0">
+          <div id="taxDetailsSection" class="expandable-section space-y-3.5 max-h-0 opacity-0 pt-1">
             <!-- Tax Rate Input & Presets -->
             <div>
               <div class="flex justify-between items-center mb-1">
@@ -520,16 +632,16 @@
               <div class="flex items-center space-x-3 mb-2">
                 <input type="range" id="taxRateSlider" min="0" max="60" step="1" value="25" class="w-full">
                 <div class="relative w-20 flex-shrink-0">
-                  <input type="number" id="taxRateInput" value="25" min="0" max="100" step="0.5" class="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-mono text-xs rounded-lg px-2 py-1.5 pr-5 border border-slate-300 dark:border-slate-700 text-right">
+                  <input type="number" inputmode="decimal" id="taxRateInput" value="25" min="0" max="100" step="0.5" class="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-mono text-xs rounded-xl px-2 py-1.5 pr-5 border border-slate-300 dark:border-slate-700 text-right">
                   <span class="absolute inset-y-0 right-0 pr-2 flex items-center text-xs text-slate-400 pointer-events-none">%</span>
                 </div>
               </div>
-              <div class="flex flex-wrap gap-1.5">
-                <button type="button" onclick="setTaxRate(15)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">15%</button>
-                <button type="button" onclick="setTaxRate(20)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">20%</button>
-                <button type="button" onclick="setTaxRate(25)" class="text-[10px] px-2 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-300 border border-rose-500/30 font-mono font-bold">25%</button>
-                <button type="button" onclick="setTaxRate(30)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">30%</button>
-                <button type="button" onclick="setTaxRate(37)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">37%</button>
+              <div class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-0.5">
+                <button type="button" onclick="setTaxRate(15)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 font-mono">15%</button>
+                <button type="button" onclick="setTaxRate(20)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 font-mono">20%</button>
+                <button type="button" onclick="setTaxRate(25)" class="text-[11px] px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-300 border border-rose-500/30 font-mono font-bold">25%</button>
+                <button type="button" onclick="setTaxRate(30)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 font-mono">30%</button>
+                <button type="button" onclick="setTaxRate(37)" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 font-mono">37%</button>
               </div>
             </div>
 
@@ -541,14 +653,14 @@
                   <input type="radio" name="taxTiming" value="cycle" checked class="text-rose-500 focus:ring-0 mt-0.5 mr-2.5">
                   <div>
                     <div class="text-xs font-semibold text-slate-800 dark:text-slate-200">Deduct per compounding cycle</div>
-                    <div class="text-[10px] text-slate-500 dark:text-slate-400">Withholds tax immediately each cycle and reinvests only net interest into the compounding balance.</div>
+                    <div class="text-[10px] text-slate-500 dark:text-slate-400">Withholds tax immediately each cycle; reinvests only net interest into compounding principal.</div>
                   </div>
                 </label>
                 <label class="flex items-start p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                   <input type="radio" name="taxTiming" value="annual" class="text-rose-500 focus:ring-0 mt-0.5 mr-2.5">
                   <div>
                     <div class="text-xs font-semibold text-slate-800 dark:text-slate-200">Deduct annually</div>
-                    <div class="text-[10px] text-slate-500 dark:text-slate-400">Gross interest compounds fully throughout the year; tax on accrued gross interest is deducted at year-end.</div>
+                    <div class="text-[10px] text-slate-500 dark:text-slate-400">Gross interest compounds throughout the year; tax on accrued gross interest is deducted at year-end.</div>
                   </div>
                 </label>
               </div>
@@ -557,11 +669,11 @@
             <!-- Tax Drag Callout Box -->
             <div class="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 text-xs space-y-1">
               <div class="flex items-center justify-between text-rose-700 dark:text-rose-300 font-bold">
-                <span>Calculated Tax Drag:</span>
+                <span>Calculated Compound Tax Drag:</span>
                 <span id="taxDragAmount" class="font-mono text-rose-600 dark:text-rose-400 font-extrabold text-sm">$0.00</span>
               </div>
               <p class="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                Represents total compound growth forfeited due to taxes reducing the principal reinvestment base over time.
+                Total wealth lost due to taxes eating into the reinvestment compounding base over time.
               </p>
             </div>
           </div>
@@ -569,166 +681,171 @@
 
       </div>
 
-      <!-- ========================================== -->
-      <!-- RIGHT COLUMN: DASHBOARD & OUTPUTS (lg:col-span-7) -->
-      <!-- ========================================== -->
-      <div class="lg:col-span-7 space-y-6">
+      <!-- ======================================================== -->
+      <!-- RIGHT COLUMN: DASHBOARD & OUTPUTS (lg:col-span-7)        -->
+      <!-- ======================================================== -->
+      <div id="sectionDashboard" class="lg:col-span-7 space-y-5 sm:space-y-6">
 
-        <!-- 6 KPI STAT CARDS -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
+        <!-- SECTION: ANALYTICS (KPIs, Charts, Milestones) -->
+        <div id="tabContentAnalytics" class="space-y-5 sm:space-y-6">
           
-          <!-- Card 1: Future Investment Value (Hero) -->
-          <div class="col-span-2 sm:col-span-1 bg-gradient-to-br from-slate-900 via-slate-850 to-brand-950/40 text-white border border-brand-500/30 rounded-2xl p-4 shadow-xl relative overflow-hidden">
-            <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-brand-500/10 rounded-full blur-xl pointer-events-none"></div>
-            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
-              <span>Final Balance</span>
-              <span id="kpiGrowthBadge" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono">+125%</span>
+          <!-- 6 KPI STAT CARDS -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3.5">
+            
+            <!-- Card 1: Future Investment Value (Hero) -->
+            <div class="col-span-2 sm:col-span-1 bg-gradient-to-br from-slate-900 via-slate-850 to-brand-950/40 text-white border border-brand-500/30 rounded-2xl p-4 shadow-xl relative overflow-hidden">
+              <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-brand-500/10 rounded-full blur-xl pointer-events-none"></div>
+              <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+                <span>Final Balance</span>
+                <span id="kpiGrowthBadge" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono">+125%</span>
+              </div>
+              <div id="kpiFinalBalance" class="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">$0.00</div>
+              <div class="text-[10px] text-slate-400 mt-1 font-medium" id="kpiMultiplierBadge">2.25x Initial Investment</div>
             </div>
-            <div id="kpiFinalBalance" class="text-xl sm:text-2xl font-extrabold text-white font-mono tracking-tight">$0.00</div>
-            <div class="text-[10px] text-slate-400 mt-1 font-medium" id="kpiMultiplierBadge">2.25x Initial Investment</div>
-          </div>
 
-          <!-- Card 2: Gross Interest Earned -->
-          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl transition-colors">
-            <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
-              <span>Gross Interest</span>
-              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <!-- Card 2: Gross Interest Earned -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl transition-colors">
+              <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+                <span>Gross Interest</span>
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              </div>
+              <div id="kpiGrossInterest" class="text-base sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 font-mono tracking-tight">$0.00</div>
+              <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-1">Pre-tax accrued earnings</div>
             </div>
-            <div id="kpiGrossInterest" class="text-base sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 font-mono tracking-tight">$0.00</div>
-            <div class="text-[10px] text-slate-500 dark:text-slate-500 mt-1">Pre-tax accrued earnings</div>
-          </div>
 
-          <!-- Card 3: Tax Deducted -->
-          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl transition-colors">
-            <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
-              <span>Tax Withheld</span>
-              <span id="kpiTaxStatusDot" class="w-2 h-2 rounded-full bg-rose-500"></span>
+            <!-- Card 3: Tax Deducted -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl transition-colors">
+              <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+                <span>Tax Withheld</span>
+                <span id="kpiTaxStatusDot" class="w-2 h-2 rounded-full bg-rose-500"></span>
+              </div>
+              <div id="kpiTotalTax" class="text-base sm:text-xl font-bold text-rose-600 dark:text-rose-400 font-mono tracking-tight">$0.00</div>
+              <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-1" id="kpiTaxEffectiveRate">0.0% of gross interest</div>
             </div>
-            <div id="kpiTotalTax" class="text-base sm:text-xl font-bold text-rose-600 dark:text-rose-400 font-mono tracking-tight">$0.00</div>
-            <div class="text-[10px] text-slate-500 dark:text-slate-500 mt-1" id="kpiTaxEffectiveRate">0.0% of gross interest</div>
+
+            <!-- Card 4: Net Interest Retained -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl transition-colors">
+              <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Net Interest Retained</div>
+              <div id="kpiNetInterest" class="text-base sm:text-xl font-bold text-brand-600 dark:text-brand-400 font-mono tracking-tight">$0.00</div>
+              <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-1">Actual take-home profit</div>
+            </div>
+
+            <!-- Card 5: Principal + Deposits -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl transition-colors">
+              <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Total Cash Invested</div>
+              <div id="kpiTotalInvested" class="text-base sm:text-xl font-bold text-slate-800 dark:text-slate-200 font-mono tracking-tight">$0.00</div>
+              <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-1" id="kpiContribPortion">$10,000 + $0 contrib.</div>
+            </div>
+
+            <!-- Card 6: Effective APY -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl transition-colors">
+              <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Effective APY</div>
+              <div id="kpiEffectiveApy" class="text-base sm:text-xl font-bold text-indigo-600 dark:text-indigo-400 font-mono tracking-tight">0.00%</div>
+              <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-1" id="kpiRealizedRate">Compounded net annual rate</div>
+            </div>
+
           </div>
 
-          <!-- Card 4: Net Interest Retained -->
-          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl transition-colors">
-            <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Net Interest Retained</div>
-            <div id="kpiNetInterest" class="text-base sm:text-xl font-bold text-brand-600 dark:text-brand-400 font-mono tracking-tight">$0.00</div>
-            <div class="text-[10px] text-slate-500 dark:text-slate-500 mt-1">Actual take-home profit</div>
+          <!-- INTERACTIVE CHART SECTION -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl transition-colors">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div>
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                  </svg>
+                  <span>Growth Trajectory & Composition</span>
+                </h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Comparing principal, regular deposits, and compound gains</p>
+              </div>
+
+              <!-- Chart Type Selector -->
+              <div class="flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+                <button type="button" onclick="setChartType('stackedArea')" id="chartBtnArea" class="px-2.5 py-1 rounded-lg font-semibold text-white bg-slate-700 shadow transition">
+                  Area
+                </button>
+                <button type="button" onclick="setChartType('line')" id="chartBtnLine" class="px-2.5 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
+                  Lines
+                </button>
+                <button type="button" onclick="setChartType('bar')" id="chartBtnBar" class="px-2.5 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
+                  Bars
+                </button>
+              </div>
+            </div>
+
+            <!-- Responsive Chart Canvas Container -->
+            <div class="relative h-60 xs:h-64 sm:h-72 md:h-80 lg:h-96 w-full">
+              <canvas id="growthChart"></canvas>
+            </div>
+
+            <!-- Chart Legend & Composition Bar -->
+            <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80">
+              <div class="flex flex-col sm:flex-row sm:justify-between text-xs text-slate-500 dark:text-slate-400 mb-1.5 font-medium gap-1">
+                <span>Asset Composition</span>
+                <span id="compositionRatioText" class="font-mono text-slate-700 dark:text-slate-300 font-semibold text-[11px] sm:text-xs">Principal: 40% | Deposits: 30% | Net Interest: 30%</span>
+              </div>
+              <div class="w-full h-3 rounded-full overflow-hidden flex bg-slate-200 dark:bg-slate-800">
+                <div id="compBarPrincipal" class="bg-slate-400 dark:bg-slate-500 h-full transition-all duration-300" style="width: 33%" title="Principal"></div>
+                <div id="compBarDeposits" class="bg-indigo-500 h-full transition-all duration-300" style="width: 33%" title="Deposits"></div>
+                <div id="compBarInterest" class="bg-emerald-500 h-full transition-all duration-300" style="width: 34%" title="Net Interest"></div>
+              </div>
+            </div>
           </div>
 
-          <!-- Card 5: Principal + Deposits -->
-          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl transition-colors">
-            <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Total Cash Invested</div>
-            <div id="kpiTotalInvested" class="text-base sm:text-xl font-bold text-slate-800 dark:text-slate-200 font-mono tracking-tight">$0.00</div>
-            <div class="text-[10px] text-slate-500 dark:text-slate-500 mt-1" id="kpiContribPortion">$10,000 + $0 contrib.</div>
-          </div>
-
-          <!-- Card 6: Effective APY -->
-          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl transition-colors">
-            <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Effective APY</div>
-            <div id="kpiEffectiveApy" class="text-base sm:text-xl font-bold text-indigo-600 dark:text-indigo-400 font-mono tracking-tight">0.00%</div>
-            <div class="text-[10px] text-slate-500 dark:text-slate-500 mt-1" id="kpiRealizedRate">Compounded net annual rate</div>
-          </div>
-
-        </div>
-
-        <!-- INTERACTIVE CHART SECTION -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl transition-colors">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-            <div>
-              <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-brand-500 dark:text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+          <!-- WEALTH MILESTONES & INSIGHTS CARD -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl grid grid-cols-1 md:grid-cols-3 gap-3 text-xs transition-colors">
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750 flex items-start space-x-2.5">
+              <div class="p-1.5 rounded-lg bg-brand-500/10 dark:bg-brand-500/20 text-brand-600 dark:text-brand-400 mt-0.5 flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Growth Trajectory & Asset Composition</span>
-              </h3>
-              <p class="text-xs text-slate-500 dark:text-slate-400">Dynamic projection comparing principal, deposits, and compound gains</p>
+              </div>
+              <div>
+                <div class="font-bold text-slate-800 dark:text-slate-200">Rule of 72 Doubling</div>
+                <div class="text-slate-500 dark:text-slate-400 mt-0.5" id="insightDoublingTime">Doubles every 10.3 years</div>
+              </div>
             </div>
 
-            <!-- Chart Type Selector -->
-            <div class="flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
-              <button type="button" onclick="setChartType('stackedArea')" id="chartBtnArea" class="px-2.5 py-1 rounded-lg font-semibold text-white bg-slate-700 shadow transition">
-                Stacked Area
-              </button>
-              <button type="button" onclick="setChartType('line')" id="chartBtnLine" class="px-2.5 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
-                Lines
-              </button>
-              <button type="button" onclick="setChartType('bar')" id="chartBtnBar" class="px-2.5 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
-                Annual Bars
-              </button>
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750 flex items-start space-x-2.5">
+              <div class="p-1.5 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div>
+                <div class="font-bold text-slate-800 dark:text-slate-200">Interest Crossover</div>
+                <div class="text-slate-500 dark:text-slate-400 mt-0.5" id="insightCrossover">Interest exceeds deposits in Yr 5</div>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750 flex items-start space-x-2.5">
+              <div class="p-1.5 rounded-lg bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 mt-0.5 flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <div>
+                <div class="font-bold text-slate-800 dark:text-slate-200">Total Money Velocity</div>
+                <div class="text-slate-500 dark:text-slate-400 mt-0.5" id="insightMultiplier">Growth makes up 54% of balance</div>
+              </div>
             </div>
           </div>
 
-          <!-- Chart Canvas Container -->
-          <div class="relative h-72 sm:h-80 w-full">
-            <canvas id="growthChart"></canvas>
-          </div>
-
-          <!-- Chart Legend & Composition Bar -->
-          <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80">
-            <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-1.5 font-medium">
-              <span>Asset Composition</span>
-              <span id="compositionRatioText" class="font-mono text-slate-700 dark:text-slate-300 font-semibold">Principal: 40% | Deposits: 30% | Net Interest: 30%</span>
-            </div>
-            <div class="w-full h-3 rounded-full overflow-hidden flex bg-slate-200 dark:bg-slate-800">
-              <div id="compBarPrincipal" class="bg-slate-400 dark:bg-slate-500 h-full transition-all duration-300" style="width: 33%" title="Principal"></div>
-              <div id="compBarDeposits" class="bg-indigo-500 h-full transition-all duration-300" style="width: 33%" title="Deposits"></div>
-              <div id="compBarInterest" class="bg-emerald-500 h-full transition-all duration-300" style="width: 34%" title="Net Interest"></div>
-            </div>
-          </div>
         </div>
 
-        <!-- WEALTH MILESTONES & INSIGHTS CARD -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl grid grid-cols-1 md:grid-cols-3 gap-3 text-xs transition-colors">
-          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750 flex items-start space-x-2.5">
-            <div class="p-1.5 rounded-lg bg-brand-500/10 dark:bg-brand-500/20 text-brand-600 dark:text-brand-400 mt-0.5">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div>
-              <div class="font-bold text-slate-800 dark:text-slate-200">Rule of 72 Doubling</div>
-              <div class="text-slate-500 dark:text-slate-400 mt-0.5" id="insightDoublingTime">Doubles every 10.3 years</div>
-            </div>
-          </div>
-
-          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750 flex items-start space-x-2.5">
-            <div class="p-1.5 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 mt-0.5">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <div>
-              <div class="font-bold text-slate-800 dark:text-slate-200">Interest Crossover</div>
-              <div class="text-slate-500 dark:text-slate-400 mt-0.5" id="insightCrossover">Interest exceeds deposits in Yr 5</div>
-            </div>
-          </div>
-
-          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750 flex items-start space-x-2.5">
-            <div class="p-1.5 rounded-lg bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 mt-0.5">
-              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <div>
-              <div class="font-bold text-slate-800 dark:text-slate-200">Total Money Velocity</div>
-              <div class="text-slate-500 dark:text-slate-400 mt-0.5" id="insightMultiplier">Growth makes up 54% of balance</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- BREAKDOWN TABLE SECTION -->
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden transition-colors">
+        <!-- SECTION: PROJECTION SCHEDULE (Ledger with Cards View & Table View) -->
+        <div id="tabContentSchedule" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden transition-colors">
           
-          <!-- Table Controls Header -->
-          <div class="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <!-- Schedule Header & Control Bar -->
+          <div class="p-3.5 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div>
               <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-500 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <span>Projection Schedule & Breakdown</span>
               </h3>
-              <p class="text-xs text-slate-500 dark:text-slate-400">Deterministic period-by-period accounting ledger</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Period-by-period accounting ledger</p>
             </div>
 
             <!-- View Toggle & Export Buttons -->
@@ -736,17 +853,27 @@
               
               <!-- Period Mode Toggle (Yearly vs Monthly) -->
               <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
-                <button type="button" id="tabYearlyBtn" onclick="setTableMode('yearly')" class="px-3 py-1 rounded-lg font-bold text-white bg-brand-600 shadow transition">
+                <button type="button" id="tabYearlyBtn" onclick="setTableMode('yearly')" class="px-2.5 sm:px-3 py-1 rounded-lg font-bold text-white bg-brand-600 shadow transition">
                   Yearly
                 </button>
-                <button type="button" id="tabMonthlyBtn" onclick="setTableMode('monthly')" class="px-3 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
+                <button type="button" id="tabMonthlyBtn" onclick="setTableMode('monthly')" class="px-2.5 sm:px-3 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
                   Monthly
+                </button>
+              </div>
+
+              <!-- Card vs Table View Switcher (Essential for Mobile!) -->
+              <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+                <button type="button" id="viewModeCardsBtn" onclick="setScheduleViewMode('cards')" class="px-2.5 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition" title="Card list view (Mobile friendly)">
+                  Cards
+                </button>
+                <button type="button" id="viewModeTableBtn" onclick="setScheduleViewMode('table')" class="px-2.5 py-1 rounded-lg font-bold text-white bg-brand-600 shadow transition" title="Spreadsheet table view">
+                  Table
                 </button>
               </div>
 
               <!-- Rows Per Page -->
               <div class="flex items-center space-x-1 text-xs">
-                <label for="rowsPerPageSelect" class="text-slate-400 hidden sm:inline">Rows:</label>
+                <label for="rowsPerPageSelect" class="text-slate-400 hidden xl:inline">Rows:</label>
                 <select id="rowsPerPageSelect" class="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium rounded-lg px-2 py-1.5 border border-slate-300 dark:border-slate-700 focus:outline-none">
                   <option value="12">12</option>
                   <option value="24">24</option>
@@ -757,7 +884,7 @@
 
               <!-- Export CSV Button -->
               <button type="button" onclick="exportToCSV()" class="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 text-xs font-semibold transition" title="Export as CSV spreadsheet">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 <span class="hidden sm:inline">CSV</span>
@@ -765,7 +892,7 @@
 
               <!-- Copy to Clipboard Button -->
               <button type="button" onclick="copyTableToClipboard()" class="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 text-xs font-semibold transition" title="Copy table formatted for Excel">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
                 </svg>
                 <span class="hidden sm:inline">Copy</span>
@@ -782,12 +909,17 @@
             </div>
           </div>
 
-          <!-- Table Responsive Scroll Container -->
-          <div class="table-container max-h-96 overflow-y-auto overflow-x-auto">
-            <table class="w-full text-left text-xs font-mono">
+          <!-- OPTION A: MOBILE-OPTIMIZED CARD VIEW CONTAINER -->
+          <div id="scheduleCardsContainer" class="hidden p-3 sm:p-4 space-y-2.5 max-h-[500px] overflow-y-auto">
+            <!-- Dynamically injected mobile cards -->
+          </div>
+
+          <!-- OPTION B: TABLE SPREADSHEET WITH FROZEN 1ST COLUMN -->
+          <div id="scheduleTableContainer" class="table-container max-h-96 overflow-y-auto overflow-x-auto">
+            <table class="w-full text-left text-xs font-mono min-w-[640px]">
               <thead class="bg-slate-100 dark:bg-slate-850 text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[11px] sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800 shadow-sm">
                 <tr>
-                  <th class="py-3 px-3.5 font-bold">Period</th>
+                  <th class="sticky-col py-3 px-3.5 font-bold shadow-r">Period</th>
                   <th class="py-3 px-3.5 font-bold text-right">Opening Balance</th>
                   <th class="py-3 px-3.5 font-bold text-right">Deposits / Withdrawals</th>
                   <th class="py-3 px-3.5 font-bold text-right text-emerald-600 dark:text-emerald-400">Gross Interest</th>
@@ -811,11 +943,11 @@
           <div class="table-pagination p-3 bg-slate-50 dark:bg-slate-850/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
             <div id="tableRecordStats">Showing 0 rows</div>
             <div class="flex items-center space-x-2">
-              <button id="prevPageBtn" onclick="changeTablePage(-1)" class="px-2.5 py-1 rounded bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium transition">
+              <button id="prevPageBtn" onclick="changeTablePage(-1)" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium transition">
                 Prev
               </button>
               <span id="pageIndicator" class="font-mono font-semibold text-slate-700 dark:text-slate-300">Page 1 / 1</span>
-              <button id="nextPageBtn" onclick="changeTablePage(1)" class="px-2.5 py-1 rounded bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium transition">
+              <button id="nextPageBtn" onclick="changeTablePage(1)" class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium transition">
                 Next
               </button>
             </div>
@@ -823,21 +955,187 @@
 
         </div>
 
+        <!-- SECTION: SCENARIO COMPARATOR (Side-by-side comparison) -->
+        <div id="tabContentCompare" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl transition-colors space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <span>Interactive Scenario Comparator</span>
+              </h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Compare your active parameters against an alternative financial path</p>
+            </div>
+
+            <!-- Alternative Selector -->
+            <div class="flex items-center space-x-2 text-xs">
+              <label for="comparePresetSelect" class="text-slate-500 dark:text-slate-400 font-semibold">Compare vs:</label>
+              <select id="comparePresetSelect" onchange="runComparison()" class="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-semibold rounded-xl px-3 py-1.5 border border-slate-300 dark:border-slate-700 outline-none focus:ring-2 focus:ring-brand-500">
+                <option value="taxFree">Without Tax (0% Tax Drag)</option>
+                <option value="boostContrib">+ $200 / Month Deposit</option>
+                <option value="higherRate">+ 2.0% Higher APR</option>
+                <option value="longerTerm">+ 5 Years Horizon</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Comparison Delta Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750">
+              <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Final Balance Delta</div>
+              <div id="compareDeltaBalance" class="text-lg font-mono font-bold text-emerald-600 dark:text-emerald-400">+$0.00</div>
+              <div id="compareDeltaPct" class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">+0.0% higher total return</div>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750">
+              <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Net Interest Difference</div>
+              <div id="compareDeltaInterest" class="text-lg font-mono font-bold text-brand-600 dark:text-brand-400">+$0.00</div>
+              <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Additional pure earnings</div>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750">
+              <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Tax Saved / Paid</div>
+              <div id="compareDeltaTax" class="text-lg font-mono font-bold text-rose-600 dark:text-rose-400">$0.00</div>
+              <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5" id="compareDeltaTaxNote">Impact on tax withheld</div>
+            </div>
+
+          </div>
+
+          <!-- Visual Comparison Bar -->
+          <div class="space-y-2 pt-2">
+            <div class="text-xs font-semibold text-slate-700 dark:text-slate-300 flex justify-between">
+              <span>Scenario A (Active Setup)</span>
+              <span id="compareBarValA" class="font-mono font-bold text-slate-900 dark:text-white">$0.00</span>
+            </div>
+            <div class="w-full h-3 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+              <div id="compareBarFillA" class="h-full bg-brand-600 rounded-full transition-all duration-500" style="width: 50%"></div>
+            </div>
+
+            <div class="text-xs font-semibold text-slate-700 dark:text-slate-300 flex justify-between pt-1">
+              <span id="compareLabelB">Scenario B (Alternative)</span>
+              <span id="compareBarValB" class="font-mono font-bold text-emerald-600 dark:text-emerald-400">$0.00</span>
+            </div>
+            <div class="w-full h-3 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+              <div id="compareBarFillB" class="h-full bg-emerald-500 rounded-full transition-all duration-500" style="width: 70%"></div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
     </div>
   </main>
 
-  <!-- Toast Notification for Copying / Feedback -->
+  <!-- Floating Mobile Quick Bar (Visible on mobile/tablets when on the Inputs tab) -->
+  <div id="mobileFloatingBar" class="fixed bottom-4 left-3 right-3 z-30 lg:hidden transform transition-all duration-300">
+    <div class="bg-slate-900/95 dark:bg-slate-900/95 backdrop-blur-md border border-brand-500/40 rounded-2xl p-2.5 sm:p-3 shadow-2xl flex items-center justify-between text-white">
+      <div class="pl-2">
+        <div class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+          <span>Projected Balance</span>
+          <span id="floatGrowthBadge" class="text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-400 font-mono">+125%</span>
+        </div>
+        <div id="floatFinalBalance" class="text-base sm:text-lg font-black font-mono text-white tracking-tight">$0.00</div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button onclick="switchMobileTab('analytics')" class="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-lg shadow-brand-600/30 flex items-center space-x-1.5 active:scale-95 transition">
+          <span>View Results</span>
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Presets Modal / Bottom Sheet (Works seamlessly across mobile, tablets, PC) -->
+  <div id="presetsModal" class="fixed inset-0 z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/70 backdrop-blur-sm transition-opacity">
+    <div class="bg-white dark:bg-slate-900 w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 sm:p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center font-bold">
+            ⚡
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Preset Financial Scenarios</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Load calibrated benchmarks with 1-tap</p>
+          </div>
+        </div>
+        <button onclick="closePresetsModal()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Preset Scenarios Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        
+        <!-- Scenario 1: S&P 500 -->
+        <button onclick="applyScenarioAndClose('sp500')" class="text-left p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-750 transition flex flex-col justify-between group">
+          <div>
+            <div class="font-bold text-brand-600 dark:text-brand-400 text-sm group-hover:translate-x-0.5 transition">S&P 500 Index Fund</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">$10k start, $500/mo, 10% APR, 15% Tax (20 Years)</div>
+          </div>
+          <div class="mt-3 text-[10px] font-bold text-brand-600 dark:text-brand-400 uppercase tracking-wider">Apply Preset →</div>
+        </button>
+
+        <!-- Scenario 2: HYSA -->
+        <button onclick="applyScenarioAndClose('hysa')" class="text-left p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-750 transition flex flex-col justify-between group">
+          <div>
+            <div class="font-bold text-emerald-600 dark:text-emerald-400 text-sm group-hover:translate-x-0.5 transition">High-Yield Savings (Daily)</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">$20k start, $1k/mo, 4.5% APR Daily, 24% Tax (5 Years)</div>
+          </div>
+          <div class="mt-3 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Apply Preset →</div>
+        </button>
+
+        <!-- Scenario 3: Retirement Nest Egg -->
+        <button onclick="applyScenarioAndClose('nestEgg')" class="text-left p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-750 transition flex flex-col justify-between group">
+          <div>
+            <div class="font-bold text-indigo-600 dark:text-indigo-400 text-sm group-hover:translate-x-0.5 transition">30-Year Retirement Nest Egg</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">$50k start, $750/mo + 3% step-up, 8% APR (30 Years)</div>
+          </div>
+          <div class="mt-3 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Apply Preset →</div>
+        </button>
+
+        <!-- Scenario 4: Dividend Portfolio -->
+        <button onclick="applyScenarioAndClose('dividend')" class="text-left p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-750 transition flex flex-col justify-between group">
+          <div>
+            <div class="font-bold text-amber-600 dark:text-amber-400 text-sm group-hover:translate-x-0.5 transition">Dividend Portfolio</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">$25k start, 6.5% APR Quarterly, $400/mo (15 Years)</div>
+          </div>
+          <div class="mt-3 text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Apply Preset →</div>
+        </button>
+
+        <!-- Scenario 5: Emergency Cash Reserve -->
+        <button onclick="applyScenarioAndClose('emergency')" class="text-left p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-750 transition flex flex-col justify-between group">
+          <div>
+            <div class="font-bold text-cyan-600 dark:text-cyan-400 text-sm group-hover:translate-x-0.5 transition">Emergency Cash Reserve</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">$5k start, $300/mo, 4.0% APR Monthly, 0% Tax (3 Years)</div>
+          </div>
+          <div class="mt-3 text-[10px] font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">Apply Preset →</div>
+        </button>
+
+        <!-- Scenario 6: Aggressive Growth -->
+        <button onclick="applyScenarioAndClose('aggressive')" class="text-left p-3.5 rounded-2xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-750 transition flex flex-col justify-between group">
+          <div>
+            <div class="font-bold text-purple-600 dark:text-purple-400 text-sm group-hover:translate-x-0.5 transition">Aggressive Growth Model</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">$15k start, $600/mo + 5% step-up, 12% APR, 20% Tax (15 Years)</div>
+          </div>
+          <div class="mt-3 text-[10px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Apply Preset →</div>
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification for Feedback -->
   <div id="toastNotification" class="fixed bottom-6 right-6 z-50 transform translate-y-16 opacity-0 transition-all duration-300 flex items-center space-x-2 bg-slate-900 border border-emerald-500/50 text-emerald-300 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-semibold">
     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
     </svg>
-    <span id="toastMessage">Copied breakdown table to clipboard!</span>
+    <span id="toastMessage">Calculations updated successfully!</span>
   </div>
 
   <!-- ======================================================== -->
-  <!-- JAVASCRIPT: DETERMINISTIC SIMULATION & UI ENGINE -->
+  <!-- JAVASCRIPT: DETERMINISTIC ENGINE & MULTI-DEVICE SYSTEM   -->
   <!-- ======================================================== -->
   <script>
     /* Global Application State */
@@ -863,6 +1161,9 @@
       tablePage: 1,
       rowsPerPage: 12,
       chartType: 'stackedArea', // 'stackedArea', 'line', 'bar'
+      scheduleViewMode: 'table', // 'cards', 'table'
+      activeMobileTab: 'inputs', // 'inputs', 'analytics', 'schedule', 'compare'
+      deviceMode: 'auto', // 'auto', 'mobile', 'tablet', 'desktop'
       
       // Simulation Output Cache
       simulationResult: null
@@ -873,8 +1174,18 @@
     /* Initialize Application on DOM Content Loaded */
     document.addEventListener('DOMContentLoaded', () => {
       initTheme();
+      initDeviceMode();
       bindInputEvents();
+      initKeyboardShortcuts();
+      
+      // Automatically choose cards view on small screens
+      if (window.innerWidth < 640) {
+        state.scheduleViewMode = 'cards';
+        updateScheduleViewButtons();
+      }
+      
       recalculate();
+      updateMobileTabsDisplay();
     });
 
     /* ======================================================== */
@@ -895,6 +1206,7 @@
     function applyTheme(theme) {
       const sunIcon = document.getElementById('sunIcon');
       const moonIcon = document.getElementById('moonIcon');
+      const themeColorMeta = document.getElementById('themeColorMeta');
       
       if (theme === 'light') {
         document.documentElement.classList.remove('dark');
@@ -902,12 +1214,14 @@
         document.body.classList.add('bg-slate-50', 'text-slate-900');
         sunIcon.classList.remove('hidden');
         moonIcon.classList.add('hidden');
+        if (themeColorMeta) themeColorMeta.setAttribute('content', '#f8fafc');
       } else {
         document.documentElement.classList.add('dark');
         document.body.classList.remove('bg-slate-50', 'text-slate-900');
         document.body.classList.add('bg-slate-950', 'text-slate-100');
         sunIcon.classList.add('hidden');
         moonIcon.classList.remove('hidden');
+        if (themeColorMeta) themeColorMeta.setAttribute('content', '#090d16');
       }
 
       if (chartInstance && state.simulationResult) {
@@ -916,7 +1230,160 @@
     }
 
     /* ======================================================== */
-    /* EVENT BINDING & LIVE SYNC */
+    /* MULTI-DEVICE VIEW ENGINE (AUTO, MOBILE, TABLET, DESKTOP) */
+    /* ======================================================== */
+    function initDeviceMode() {
+      const savedMode = localStorage.getItem('compound_device_mode') || 'auto';
+      setDeviceMode(savedMode, false);
+
+      const deviceBtn = document.getElementById('deviceModeBtn');
+      const deviceDropdown = document.getElementById('deviceModeDropdown');
+      
+      deviceBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deviceDropdown.classList.toggle('hidden');
+      });
+
+      document.addEventListener('click', () => {
+        deviceDropdown.classList.add('hidden');
+      });
+    }
+
+    function setDeviceMode(mode, save = true) {
+      state.deviceMode = mode;
+      if (save) localStorage.setItem('compound_device_mode', mode);
+
+      const labelEl = document.getElementById('deviceModeLabel');
+      const iconEl = document.getElementById('deviceModeIcon');
+      const mainContainer = document.getElementById('mainAppContainer');
+      const mobileTabBar = document.getElementById('mobileTabBar');
+      const mobileFloatingBar = document.getElementById('mobileFloatingBar');
+
+      // Update checks in dropdown
+      document.querySelectorAll('.dev-check').forEach(el => {
+        if (el.getAttribute('data-mode') === mode) {
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+
+      // Clear forced frame classes
+      mainContainer.classList.remove('device-mobile-active', 'device-tablet-active');
+
+      if (mode === 'mobile') {
+        labelEl.textContent = 'Mobile';
+        iconEl.textContent = '📱';
+        mainContainer.classList.add('device-mobile-active');
+        mobileTabBar.classList.remove('lg:hidden');
+        if (state.activeMobileTab === 'inputs') {
+          mobileFloatingBar.classList.remove('lg:hidden');
+        }
+      } else if (mode === 'tablet') {
+        labelEl.textContent = 'Tablet';
+        iconEl.textContent = '📖';
+        mainContainer.classList.add('device-tablet-active');
+        mobileTabBar.classList.remove('lg:hidden');
+      } else if (mode === 'desktop') {
+        labelEl.textContent = 'Desktop';
+        iconEl.textContent = '💻';
+        mobileTabBar.classList.add('lg:hidden');
+        mobileFloatingBar.classList.add('lg:hidden');
+      } else {
+        labelEl.textContent = 'Auto';
+        iconEl.textContent = '⚡';
+        mobileTabBar.classList.add('lg:hidden');
+        mobileFloatingBar.classList.add('lg:hidden');
+      }
+
+      updateMobileTabsDisplay();
+      if (chartInstance) {
+        setTimeout(() => chartInstance.resize(), 100);
+      }
+      if (save) showToast(`Switched layout mode: ${mode.toUpperCase()}`);
+    }
+
+    /* ======================================================== */
+    /* MOBILE NAVIGATION TABS ENGINE                            */
+    /* ======================================================== */
+    function switchMobileTab(tab) {
+      state.activeMobileTab = tab;
+      
+      const tabs = ['inputs', 'analytics', 'schedule', 'compare'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tabNav${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        if (t === tab) {
+          btn.className = 'flex-1 py-2 px-2 rounded-xl text-center text-xs font-bold transition flex items-center justify-center gap-1.5 bg-brand-600 text-white shadow-sm';
+        } else {
+          btn.className = 'flex-1 py-2 px-2 rounded-xl text-center text-xs font-semibold transition flex items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
+        }
+      });
+
+      updateMobileTabsDisplay();
+
+      // Smooth scroll to top of content
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // If switching to analytics or compare, trigger chart resize
+      if (tab === 'analytics' && chartInstance) {
+        setTimeout(() => chartInstance.resize(), 50);
+      }
+      if (tab === 'compare') {
+        runComparison();
+      }
+    }
+
+    function updateMobileTabsDisplay() {
+      const isMobileView = window.innerWidth < 1024 || state.deviceMode === 'mobile' || state.deviceMode === 'tablet';
+      const secInputs = document.getElementById('sectionInputs');
+      const secDashboard = document.getElementById('sectionDashboard');
+      const contentAnalytics = document.getElementById('tabContentAnalytics');
+      const contentSchedule = document.getElementById('tabContentSchedule');
+      const contentCompare = document.getElementById('tabContentCompare');
+      const floatBar = document.getElementById('mobileFloatingBar');
+
+      if (!isMobileView && state.deviceMode !== 'mobile') {
+        // Desktop full side-by-side mode: show everything
+        secInputs.classList.remove('hidden');
+        secDashboard.classList.remove('hidden');
+        contentAnalytics.classList.remove('hidden');
+        contentSchedule.classList.remove('hidden');
+        contentCompare.classList.remove('hidden');
+        floatBar.classList.add('hidden');
+        return;
+      }
+
+      // In Mobile tab mode, show only the active section
+      secInputs.classList.add('hidden');
+      secDashboard.classList.add('hidden');
+      contentAnalytics.classList.add('hidden');
+      contentSchedule.classList.add('hidden');
+      contentCompare.classList.add('hidden');
+      floatBar.classList.add('hidden');
+
+      if (state.activeMobileTab === 'inputs') {
+        secInputs.classList.remove('hidden');
+        floatBar.classList.remove('hidden');
+      } else if (state.activeMobileTab === 'analytics') {
+        secDashboard.classList.remove('hidden');
+        contentAnalytics.classList.remove('hidden');
+      } else if (state.activeMobileTab === 'schedule') {
+        secDashboard.classList.remove('hidden');
+        contentSchedule.classList.remove('hidden');
+      } else if (state.activeMobileTab === 'compare') {
+        secDashboard.classList.remove('hidden');
+        contentCompare.classList.remove('hidden');
+      }
+    }
+
+    // Window resize handler for responsive tab layout
+    window.addEventListener('resize', () => {
+      updateMobileTabsDisplay();
+      if (chartInstance) chartInstance.resize();
+    });
+
+    /* ======================================================== */
+    /* EVENT BINDING & LIVE SYNC                                */
     /* ======================================================== */
     function bindInputEvents() {
       // Currency Select
@@ -1055,7 +1522,7 @@
       taxToggle.addEventListener('change', (e) => {
         state.taxEnabled = e.target.checked;
         if (state.taxEnabled) {
-          taxDetailsSection.style.maxHeight = '500px';
+          taxDetailsSection.style.maxHeight = '600px';
           taxDetailsSection.style.opacity = '1';
         } else {
           taxDetailsSection.style.maxHeight = '0px';
@@ -1109,16 +1576,24 @@
         resetDefaults();
       });
 
-      // Preset Dropdown Trigger
-      const scenarioMenuBtn = document.getElementById('scenarioMenuBtn');
-      const scenarioDropdown = document.getElementById('scenarioDropdown');
-      scenarioMenuBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        scenarioDropdown.classList.toggle('hidden');
+      // Presets Modal Trigger
+      document.getElementById('scenarioMenuBtn').addEventListener('click', () => {
+        openPresetsModal();
       });
+    }
 
-      document.addEventListener('click', () => {
-        scenarioDropdown.classList.add('hidden');
+    function initKeyboardShortcuts() {
+      document.addEventListener('keydown', (e) => {
+        // Ctrl+Enter or Cmd+Enter to Recalculate
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          recalculate();
+          triggerCalculateFeedback();
+        }
+        // Escape closes modals
+        if (e.key === 'Escape') {
+          closePresetsModal();
+        }
       });
     }
 
@@ -1153,11 +1628,22 @@
       helper.textContent = map[state.compoundingFreq] || '';
     }
 
-    /* Helper Quick Setters */
+    /* Helper Quick Setters & Steppers */
     function setPrincipal(val) {
       document.getElementById('principalInput').value = val;
       state.initialPrincipal = val;
       document.getElementById('principalFormattedDisplay').textContent = formatCurrency(val);
+      recalculate();
+    }
+
+    function adjustPrincipal(delta) {
+      setPrincipal(Math.max(0, state.initialPrincipal + delta));
+    }
+
+    function adjustRate(delta) {
+      state.interestRate = Math.max(0, +(state.interestRate + delta).toFixed(2));
+      document.getElementById('interestRateInput').value = state.interestRate;
+      updateRateDisplay();
       recalculate();
     }
 
@@ -1170,10 +1656,18 @@
       recalculate();
     }
 
+    function adjustYears(delta) {
+      setYears(Math.max(1, state.years + delta));
+    }
+
     function setContribAmount(amt) {
       document.getElementById('contribAmountInput').value = amt;
       state.contribAmount = amt;
       recalculate();
+    }
+
+    function adjustContrib(delta) {
+      setContribAmount(Math.max(0, state.contribAmount + delta));
     }
 
     function setTaxRate(rate) {
@@ -1194,10 +1688,12 @@
     }
 
     /* ======================================================== */
-    /* DETERMINISTIC STEP SIMULATION ENGINE */
+    /* DETERMINISTIC STEP SIMULATION ENGINE                     */
     /* ======================================================== */
-    function runDeterministicSimulation(taxOverride) {
+    function runDeterministicSimulation(taxOverride, customParams = null) {
       const isTaxActive = (taxOverride !== undefined) ? taxOverride : state.taxEnabled;
+
+      const p = customParams ? { ...state, ...customParams } : state;
 
       const {
         initialPrincipal,
@@ -1213,9 +1709,9 @@
         annualStepUpPct,
         taxRatePct,
         taxTiming
-      } = state;
+      } = p;
 
-      // 1. Calculate nominal annual interest rate R_nominal
+      // Calculate nominal annual interest rate
       let nominalAnnualRate = interestRate / 100;
       if (ratePeriod === 'semiannual') nominalAnnualRate *= 2;
       else if (ratePeriod === 'quarterly') nominalAnnualRate *= 4;
@@ -1231,7 +1727,6 @@
         ? [30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30] 
         : [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
-      // Day-level simulation counters
       let currentBalance = Math.max(0, initialPrincipal);
       let cumulativeDeposits = 0;
       let totalGrossInterest = 0;
@@ -1245,7 +1740,7 @@
       const monthlyLedger = [];
       const yearlyLedger = [];
 
-      // Loop month by month
+      // Month by month loop
       for (let m = 1; m <= totalMonths; m++) {
         const monthOpeningBalance = currentBalance;
         const monthIdx = (m - 1) % 12;
@@ -1264,19 +1759,18 @@
         let monthNetInterest = 0;
         let monthDeposits = 0;
 
-        // Determine if monthly/quarterly/halfyearly/yearly contributions fall on this month
         const shouldDepositMonthly = (contribFreq === 'monthly');
         const shouldDepositQuarterly = (contribFreq === 'quarterly' && ((contribTiming === 'beginning' && (m % 3 === 1)) || (contribTiming === 'end' && (m % 3 === 0))));
         const shouldDepositHalfYearly = (contribFreq === 'halfyearly' && ((contribTiming === 'beginning' && (m % 6 === 1)) || (contribTiming === 'end' && (m % 6 === 0))));
         const shouldDepositYearly = (contribFreq === 'yearly' && ((contribTiming === 'beginning' && (m % 12 === 1)) || (contribTiming === 'end' && (m % 12 === 0))));
 
-        // Day-by-Day Step in this month
+        // Day by day loop
         for (let d = 1; d <= daysInMonth; d++) {
           dayCounter++;
           const isMonthStart = (d === 1);
           const isMonthEnd = (d === daysInMonth);
 
-          // 1. Beginning-of-period Contributions
+          // Beginning-of-period Contributions
           if (contribTiming === 'beginning') {
             if (isMonthStart && (shouldDepositMonthly || shouldDepositQuarterly || shouldDepositHalfYearly || shouldDepositYearly)) {
               currentBalance += activeContrib;
@@ -1293,10 +1787,9 @@
             }
           }
 
-          // Balance cannot drop below zero
           if (currentBalance < 0) currentBalance = 0;
 
-          // 2. Daily Interest Accrual calculation
+          // Daily Interest Accrual
           let dailyRate = 0;
           if (compoundingFreq === 'daily365') {
             dailyRate = nominalAnnualRate / 365;
@@ -1321,7 +1814,7 @@
           monthGrossInterest += dailyGross;
           totalGrossInterest += dailyGross;
 
-          // Check if this day is a Compounding Event
+          // Check Compounding Day
           let isCompoundDay = false;
           if (compoundingFreq === 'daily365' || compoundingFreq === 'daily360') {
             isCompoundDay = true;
@@ -1339,7 +1832,6 @@
             isCompoundDay = true;
           }
 
-          // Force compound at very end of simulation
           if (m === totalMonths && isMonthEnd) {
             isCompoundDay = true;
           }
@@ -1355,7 +1847,6 @@
                 monthNetInterest += net;
                 totalNetInterest += net;
               } else {
-                // Annual Tax: Gross compounds during cycle
                 currentBalance += accruedInterestCycle;
                 yearAccruedGrossInterest += accruedInterestCycle;
                 monthNetInterest += accruedInterestCycle;
@@ -1369,18 +1860,18 @@
             accruedInterestCycle = 0;
           }
 
-          // 3. Annual Tax Deduction (if taxTiming === 'annual' and year-end)
+          // Annual Tax Deduction
           if (isTaxActive && taxTiming === 'annual' && isMonthEnd && isYearEnd && yearAccruedGrossInterest > 0) {
             const tax = yearAccruedGrossInterest * (taxRatePct / 100);
             currentBalance -= tax;
             monthTaxDeducted += tax;
             totalTaxPaid += tax;
-            monthNetInterest -= tax; // Adjust monthly net to reflect annual tax withholding
+            monthNetInterest -= tax;
             totalNetInterest -= tax;
             yearAccruedGrossInterest = 0;
           }
 
-          // 4. End-of-period Contributions
+          // End-of-period Contributions
           if (contribTiming === 'end') {
             if (isMonthEnd && (shouldDepositMonthly || shouldDepositQuarterly || shouldDepositHalfYearly || shouldDepositYearly)) {
               currentBalance += activeContrib;
@@ -1398,7 +1889,7 @@
           }
 
           if (currentBalance < 0) currentBalance = 0;
-        } // End Day Loop
+        }
 
         // Store Month Record
         monthlyLedger.push({
@@ -1412,9 +1903,9 @@
           netInterest: monthNetInterest,
           endingBalance: currentBalance
         });
-      } // End Month Loop
+      }
 
-      // Aggregate Yearly Ledger from Monthly Ledger
+      // Aggregate Yearly Ledger
       const totalYearsCount = Math.ceil(totalMonths / 12);
       for (let y = 1; y <= totalYearsCount; y++) {
         const startMonthIdx = (y - 1) * 12;
@@ -1458,9 +1949,9 @@
       const effectiveRatePeriod = isTaxActive ? nominalAnnualRate * (1 - taxRatePct / 100) : nominalAnnualRate;
       const nominalApy = (Math.pow(1 + effectiveRatePeriod / n_comp, n_comp) - 1) * 100;
 
-      // Calculate Tax Drag recursively without reliance on previous cache
+      // Calculate Tax Drag
       let taxDrag = 0;
-      if (isTaxActive && taxOverride === undefined) {
+      if (isTaxActive && taxOverride === undefined && !customParams) {
         const noTaxResult = runDeterministicSimulation(false);
         taxDrag = Math.max(0, noTaxResult.finalBalance - currentBalance);
       }
@@ -1495,7 +1986,7 @@
     }
 
     /* ======================================================== */
-    /* MASTER RECALCULATE & DASHBOARD SYNC */
+    /* MASTER RECALCULATE & DASHBOARD SYNC                      */
     /* ======================================================== */
     function recalculate() {
       const res = runDeterministicSimulation();
@@ -1510,8 +2001,11 @@
       // Update Milestones & Insights
       updateMilestones(res);
 
-      // Render Breakdown Table
+      // Render Breakdown Table & Cards
       renderTable();
+
+      // Update Scenario Comparator
+      runComparison();
     }
 
     function updateKpis(res) {
@@ -1541,6 +2035,17 @@
           : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
       }`;
 
+      // Update Floating Mobile Summary Bar
+      const floatFinalEl = document.getElementById('floatFinalBalance');
+      const floatGrowthEl = document.getElementById('floatGrowthBadge');
+      if (floatFinalEl) floatFinalEl.textContent = formatCurrency(res.finalBalance);
+      if (floatGrowthEl) {
+        floatGrowthEl.textContent = `${growthPct >= 0 ? '+' : ''}${growthPct.toFixed(1)}%`;
+        floatGrowthEl.className = `text-[9px] px-1 py-0.5 rounded font-mono ${
+          growthPct >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+        }`;
+      }
+
       const multiplier = res.initialPrincipal > 0 ? (res.finalBalance / res.initialPrincipal).toFixed(2) : '1.0';
       document.getElementById('kpiMultiplierBadge').textContent = `${multiplier}x Initial Principal`;
 
@@ -1564,7 +2069,7 @@
       const doublingYears = netRate > 0 ? (72 / netRate).toFixed(1) : '∞';
       document.getElementById('insightDoublingTime').textContent = `Doubles in ~${doublingYears} years`;
 
-      // 2. Milestone: Month/Year interest exceeds regular deposit
+      // 2. Interest Crossover
       const activeDeposit = state.contribType === 'deposit' ? state.contribAmount : 0;
       const crossoverEl = document.getElementById('insightCrossover');
       if (activeDeposit > 0 && res.monthlyLedger.length > 0) {
@@ -1575,10 +2080,10 @@
           crossoverEl.textContent = `Interest approaching deposit amount`;
         }
       } else {
-        crossoverEl.textContent = `Zero recurring deposits configured`;
+        crossoverEl.textContent = `Zero regular deposits configured`;
       }
 
-      // 3. Asset Composition Ratio Bar
+      // 3. Asset Composition Bar
       const total = res.finalBalance;
       if (total > 0) {
         const principalPct = Math.max(0, (res.initialPrincipal / total) * 100);
@@ -1598,11 +2103,12 @@
     }
 
     /* ======================================================== */
-    /* CHART.JS INTERACTIVE VISUALIZATION */
+    /* CHART.JS INTERACTIVE VISUALIZATION                       */
     /* ======================================================== */
     function renderOrUpdateChart(res) {
       const ctx = document.getElementById('growthChart').getContext('2d');
       const isDark = document.documentElement.classList.contains('dark');
+      const isMobile = window.innerWidth < 640 || state.deviceMode === 'mobile';
       
       const gridColor = isDark ? 'rgba(51, 65, 85, 0.4)' : 'rgba(226, 232, 240, 0.8)';
       const textColor = isDark ? '#94a3b8' : '#64748b';
@@ -1675,18 +2181,18 @@
             ]
           },
           options: {
-            ...getCommonChartOptions(gridColor, textColor),
+            ...getCommonChartOptions(gridColor, textColor, isMobile),
             scales: {
               x: {
                 grid: { color: gridColor },
-                ticks: { color: textColor, font: { family: 'Inter', size: 10 }, maxRotation: 45 }
+                ticks: { color: textColor, font: { family: 'Inter', size: isMobile ? 9 : 10 }, maxRotation: 45, maxTicksLimit: isMobile ? 6 : 14 }
               },
               y: {
                 stacked: true,
                 grid: { color: gridColor },
                 ticks: {
                   color: textColor,
-                  font: { family: 'JetBrains Mono', size: 10 },
+                  font: { family: 'JetBrains Mono', size: isMobile ? 9 : 10 },
                   callback: function(value) {
                     return formatCompactCurrency(value);
                   }
@@ -1708,7 +2214,7 @@
                 backgroundColor: 'rgba(59, 130, 246, 0.1)',
                 borderWidth: 2.5,
                 tension: 0.25,
-                pointRadius: 3,
+                pointRadius: isMobile ? 1.5 : 3,
                 pointHoverRadius: 6
               },
               {
@@ -1726,11 +2232,11 @@
                 borderColor: '#10b981',
                 borderWidth: 2,
                 tension: 0.25,
-                pointRadius: 2
+                pointRadius: isMobile ? 1.5 : 2
               }
             ]
           },
-          options: getCommonChartOptions(gridColor, textColor)
+          options: getCommonChartOptions(gridColor, textColor, isMobile)
         };
       } else if (state.chartType === 'bar') {
         chartConfig = {
@@ -1752,14 +2258,14 @@
               }
             ]
           },
-          options: getCommonChartOptions(gridColor, textColor)
+          options: getCommonChartOptions(gridColor, textColor, isMobile)
         };
       }
 
       chartInstance = new Chart(ctx, chartConfig);
     }
 
-    function getCommonChartOptions(gridColor, textColor) {
+    function getCommonChartOptions(gridColor, textColor, isMobile) {
       return {
         responsive: true,
         maintainAspectRatio: false,
@@ -1772,9 +2278,10 @@
             position: 'top',
             labels: {
               color: textColor,
-              font: { family: 'Inter', size: 11, weight: 600 },
+              font: { family: 'Inter', size: isMobile ? 9 : 11, weight: 600 },
               usePointStyle: true,
-              boxWidth: 8
+              boxWidth: isMobile ? 6 : 8,
+              padding: isMobile ? 8 : 12
             }
           },
           tooltip: {
@@ -1783,11 +2290,11 @@
             bodyColor: '#cbd5e1',
             borderColor: '#334155',
             borderWidth: 1,
-            padding: 10,
+            padding: 8,
             boxPadding: 4,
             usePointStyle: true,
-            titleFont: { family: 'Inter', size: 12, weight: 'bold' },
-            bodyFont: { family: 'JetBrains Mono', size: 11 },
+            titleFont: { family: 'Inter', size: 11, weight: 'bold' },
+            bodyFont: { family: 'JetBrains Mono', size: 10 },
             callbacks: {
               label: function(context) {
                 let label = context.dataset.label || '';
@@ -1811,13 +2318,13 @@
         scales: {
           x: {
             grid: { color: gridColor },
-            ticks: { color: textColor, font: { family: 'Inter', size: 10 }, maxRotation: 45 }
+            ticks: { color: textColor, font: { family: 'Inter', size: isMobile ? 9 : 10 }, maxRotation: 45, maxTicksLimit: isMobile ? 6 : 14 }
           },
           y: {
             grid: { color: gridColor },
             ticks: {
               color: textColor,
-              font: { family: 'JetBrains Mono', size: 10 },
+              font: { family: 'JetBrains Mono', size: isMobile ? 9 : 10 },
               callback: function(value) {
                 return formatCompactCurrency(value);
               }
@@ -1855,7 +2362,7 @@
     }
 
     /* ======================================================== */
-    /* BREAKDOWN TABLE RENDERER */
+    /* BREAKDOWN SCHEDULE & CARDS/TABLE RENDERER                */
     /* ======================================================== */
     function setTableMode(mode) {
       state.tableMode = mode;
@@ -1865,14 +2372,45 @@
       const monthlyBtn = document.getElementById('tabMonthlyBtn');
 
       if (mode === 'yearly') {
-        yearlyBtn.className = 'px-3 py-1 rounded-lg font-bold text-white bg-brand-600 shadow transition';
-        monthlyBtn.className = 'px-3 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition';
+        yearlyBtn.className = 'px-2.5 sm:px-3 py-1 rounded-lg font-bold text-white bg-brand-600 shadow transition';
+        monthlyBtn.className = 'px-2.5 sm:px-3 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition';
       } else {
-        monthlyBtn.className = 'px-3 py-1 rounded-lg font-bold text-white bg-brand-600 shadow transition';
-        yearlyBtn.className = 'px-3 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition';
+        monthlyBtn.className = 'px-2.5 sm:px-3 py-1 rounded-lg font-bold text-white bg-brand-600 shadow transition';
+        yearlyBtn.className = 'px-2.5 sm:px-3 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition';
       }
 
       renderTable();
+    }
+
+    function setScheduleViewMode(view) {
+      state.scheduleViewMode = view;
+      updateScheduleViewButtons();
+
+      const tableContainer = document.getElementById('scheduleTableContainer');
+      const cardsContainer = document.getElementById('scheduleCardsContainer');
+
+      if (view === 'cards') {
+        tableContainer.classList.add('hidden');
+        cardsContainer.classList.remove('hidden');
+      } else {
+        cardsContainer.classList.add('hidden');
+        tableContainer.classList.remove('hidden');
+      }
+
+      renderTable();
+    }
+
+    function updateScheduleViewButtons() {
+      const cardsBtn = document.getElementById('viewModeCardsBtn');
+      const tableBtn = document.getElementById('viewModeTableBtn');
+
+      if (state.scheduleViewMode === 'cards') {
+        cardsBtn.className = 'px-2.5 py-1 rounded-lg font-bold text-white bg-brand-600 shadow transition';
+        tableBtn.className = 'px-2.5 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition';
+      } else {
+        tableBtn.className = 'px-2.5 py-1 rounded-lg font-bold text-white bg-brand-600 shadow transition';
+        cardsBtn.className = 'px-2.5 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition';
+      }
     }
 
     function renderTable() {
@@ -1882,9 +2420,6 @@
         ? state.simulationResult.yearlyLedger 
         : state.simulationResult.monthlyLedger;
 
-      const tbody = document.getElementById('breakdownTableBody');
-      tbody.innerHTML = '';
-
       const totalRows = ledger.length;
       const totalPages = Math.ceil(totalRows / state.rowsPerPage) || 1;
       state.tablePage = Math.max(1, Math.min(state.tablePage, totalPages));
@@ -1892,12 +2427,16 @@
       const startIndex = (state.tablePage - 1) * state.rowsPerPage;
       const pageRows = ledger.slice(startIndex, startIndex + state.rowsPerPage);
 
+      // 1. Render Spreadsheet Table Rows
+      const tbody = document.getElementById('breakdownTableBody');
+      tbody.innerHTML = '';
+
       pageRows.forEach((row) => {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors';
 
         tr.innerHTML = `
-          <td class="py-2.5 px-3.5 font-bold text-slate-900 dark:text-slate-200 whitespace-nowrap">${row.periodLabel}</td>
+          <td class="sticky-col py-2.5 px-3.5 font-bold text-slate-900 dark:text-slate-200 whitespace-nowrap shadow-r">${row.periodLabel}</td>
           <td class="py-2.5 px-3.5 text-right font-mono text-slate-700 dark:text-slate-300">${formatCurrency(row.openingBalance)}</td>
           <td class="py-2.5 px-3.5 text-right font-mono font-medium ${row.deposits >= 0 ? 'text-slate-700 dark:text-slate-300' : 'text-rose-600 dark:text-rose-400'}">
             ${row.deposits > 0 ? '+' : ''}${formatCurrency(row.deposits)}
@@ -1910,6 +2449,45 @@
         tbody.appendChild(tr);
       });
 
+      // 2. Render Mobile Cards View
+      const cardsContainer = document.getElementById('scheduleCardsContainer');
+      cardsContainer.innerHTML = '';
+
+      pageRows.forEach((row) => {
+        const card = document.createElement('div');
+        card.className = 'p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-750 transition space-y-2';
+        
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-xs text-brand-600 dark:text-brand-400 bg-brand-500/10 px-2.5 py-0.5 rounded-lg">${row.periodLabel}</span>
+            <span class="font-mono font-black text-sm sm:text-base text-slate-900 dark:text-white">${formatCurrency(row.endingBalance)}</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs pt-1">
+            <div>
+              <span class="text-slate-400 block text-[10px]">Net Interest</span>
+              <span class="font-mono text-emerald-600 dark:text-emerald-400 font-bold">+${formatCurrency(row.netInterest)}</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[10px]">Deposits</span>
+              <span class="font-mono text-slate-700 dark:text-slate-300 font-semibold">${row.deposits >= 0 ? '+' : ''}${formatCurrency(row.deposits)}</span>
+            </div>
+          </div>
+          <details class="text-xs pt-1.5 border-t border-slate-200 dark:border-slate-700/50">
+            <summary class="cursor-pointer text-[11px] font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">View Full Breakdown ▾</summary>
+            <div class="mt-2 space-y-1 font-mono text-[11px] text-slate-600 dark:text-slate-400">
+              <div class="flex justify-between"><span>Opening Balance:</span> <span>${formatCurrency(row.openingBalance)}</span></div>
+              <div class="flex justify-between"><span>Gross Interest:</span> <span class="text-emerald-500">+${formatCurrency(row.grossInterest)}</span></div>
+              <div class="flex justify-between"><span>Tax Withheld:</span> <span class="text-rose-500">-${formatCurrency(row.taxDeducted)}</span></div>
+              <div class="flex justify-between font-bold pt-1 border-t border-slate-200 dark:border-slate-700">
+                <span class="text-slate-800 dark:text-slate-200">Ending Balance:</span> 
+                <span class="text-brand-500">${formatCurrency(row.endingBalance)}</span>
+              </div>
+            </div>
+          </details>
+        `;
+        cardsContainer.appendChild(card);
+      });
+
       // Render Totals Row
       const totalsRow = document.getElementById('tableTotalsRow');
       const totalDeposits = ledger.reduce((sum, r) => sum + r.deposits, 0);
@@ -1919,7 +2497,7 @@
       const finalEnd = ledger.length > 0 ? ledger[ledger.length - 1].endingBalance : 0;
 
       totalsRow.innerHTML = `
-        <td class="py-3 px-3.5 text-slate-900 dark:text-white uppercase text-[11px] font-extrabold">Total (${ledger.length} Periods)</td>
+        <td class="sticky-col py-3 px-3.5 text-slate-900 dark:text-white uppercase text-[11px] font-extrabold shadow-r">Total (${ledger.length})</td>
         <td class="py-3 px-3.5 text-right text-slate-400 font-mono">-</td>
         <td class="py-3 px-3.5 text-right font-mono text-slate-900 dark:text-slate-100 font-bold">${totalDeposits >= 0 ? '+' : ''}${formatCurrency(totalDeposits)}</td>
         <td class="py-3 px-3.5 text-right font-mono text-emerald-600 dark:text-emerald-400 font-extrabold">${formatCurrency(totalGross)}</td>
@@ -1943,7 +2521,65 @@
     }
 
     /* ======================================================== */
-    /* EXPORT & SHARING SUITE (CSV, TSV CLIPBOARD, PRINT) */
+    /* INTERACTIVE SCENARIO COMPARATOR                          */
+    /* ======================================================== */
+    function runComparison() {
+      if (!state.simulationResult) return;
+
+      const compareType = document.getElementById('comparePresetSelect').value;
+      const resA = state.simulationResult;
+      let override = {};
+      let labelB = 'Scenario B';
+
+      if (compareType === 'taxFree') {
+        override = { taxEnabled: false };
+        labelB = 'Without Tax (Tax-Free Growth)';
+      } else if (compareType === 'boostContrib') {
+        override = { contribAmount: state.contribAmount + 200 };
+        labelB = `Extra +${state.currency}200/mo Contribution`;
+      } else if (compareType === 'higherRate') {
+        override = { interestRate: state.interestRate + 2.0 };
+        labelB = `Higher Yield (+2.0% APR)`;
+      } else if (compareType === 'longerTerm') {
+        override = { years: state.years + 5 };
+        labelB = `Longer Horizon (+5 Years)`;
+      }
+
+      const resB = runDeterministicSimulation(undefined, override);
+      const deltaBalance = resB.finalBalance - resA.finalBalance;
+      const deltaInterest = resB.totalNetInterest - resA.totalNetInterest;
+      const deltaTax = resB.totalTaxPaid - resA.totalTaxPaid;
+
+      // Update Comparator DOM
+      document.getElementById('compareLabelB').textContent = labelB;
+      
+      const deltaBalEl = document.getElementById('compareDeltaBalance');
+      deltaBalEl.textContent = `${deltaBalance >= 0 ? '+' : ''}${formatCurrency(deltaBalance)}`;
+      deltaBalEl.className = `text-lg font-mono font-bold ${deltaBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`;
+
+      const pctChange = resA.finalBalance > 0 ? (deltaBalance / resA.finalBalance) * 100 : 0;
+      document.getElementById('compareDeltaPct').textContent = `${pctChange >= 0 ? '+' : ''}${pctChange.toFixed(1)}% vs active setup`;
+
+      const deltaIntEl = document.getElementById('compareDeltaInterest');
+      deltaIntEl.textContent = `${deltaInterest >= 0 ? '+' : ''}${formatCurrency(deltaInterest)}`;
+
+      const deltaTaxEl = document.getElementById('compareDeltaTax');
+      deltaTaxEl.textContent = formatCurrency(Math.abs(deltaTax));
+      document.getElementById('compareDeltaTaxNote').textContent = deltaTax < 0 ? 'Taxes avoided / saved' : 'Additional tax paid';
+
+      // Update Visual Balance Bars
+      const maxVal = Math.max(resA.finalBalance, resB.finalBalance, 1);
+      const pctA = Math.max(5, (resA.finalBalance / maxVal) * 100);
+      const pctB = Math.max(5, (resB.finalBalance / maxVal) * 100);
+
+      document.getElementById('compareBarValA').textContent = formatCurrency(resA.finalBalance);
+      document.getElementById('compareBarValB').textContent = formatCurrency(resB.finalBalance);
+      document.getElementById('compareBarFillA').style.width = `${pctA}%`;
+      document.getElementById('compareBarFillB').style.width = `${pctB}%`;
+    }
+
+    /* ======================================================== */
+    /* EXPORT & SHARING SUITE (CSV, TSV CLIPBOARD, PRINT)       */
     /* ======================================================== */
     function exportToCSV() {
       if (!state.simulationResult) return;
@@ -1952,10 +2588,12 @@
         ? state.simulationResult.yearlyLedger 
         : state.simulationResult.monthlyLedger;
 
-      let csv = `Period,Opening Balance,Deposits / Withdrawals,Gross Interest,Tax Deducted,Net Interest,Ending Balance\r\n`;
+      let csv = `Period,Opening Balance,Deposits / Withdrawals,Gross Interest,Tax Deducted,Net Interest,Ending Balance
+`;
 
       ledger.forEach(r => {
-        csv += `"${r.periodLabel}",${r.openingBalance.toFixed(2)},${r.deposits.toFixed(2)},${r.grossInterest.toFixed(2)},${r.taxDeducted.toFixed(2)},${r.netInterest.toFixed(2)},${r.endingBalance.toFixed(2)}\r\n`;
+        csv += `"${r.periodLabel}",${r.openingBalance.toFixed(2)},${r.deposits.toFixed(2)},${r.grossInterest.toFixed(2)},${r.taxDeducted.toFixed(2)},${r.netInterest.toFixed(2)},${r.endingBalance.toFixed(2)}
+`;
       });
 
       const totalDeposits = ledger.reduce((sum, r) => sum + r.deposits, 0);
@@ -1963,9 +2601,10 @@
       const totalTax = ledger.reduce((sum, r) => sum + r.taxDeducted, 0);
       const totalNet = ledger.reduce((sum, r) => sum + r.netInterest, 0);
       const finalEnd = ledger.length > 0 ? ledger[ledger.length - 1].endingBalance : 0;
-      csv += `"TOTAL",-,${totalDeposits.toFixed(2)},${totalGross.toFixed(2)},${totalTax.toFixed(2)},${totalNet.toFixed(2)},${finalEnd.toFixed(2)}\r\n`;
+      csv += `"TOTAL",-,${totalDeposits.toFixed(2)},${totalGross.toFixed(2)},${totalTax.toFixed(2)},${totalNet.toFixed(2)},${finalEnd.toFixed(2)}
+`;
 
-      const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob(["﻿" + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
@@ -1983,10 +2622,12 @@
         ? state.simulationResult.yearlyLedger 
         : state.simulationResult.monthlyLedger;
 
-      let tsv = `Period\tOpening Balance\tDeposits / Withdrawals\tGross Interest\tTax Deducted\tNet Interest\tEnding Balance\n`;
+      let tsv = `Period	Opening Balance	Deposits / Withdrawals	Gross Interest	Tax Deducted	Net Interest	Ending Balance
+`;
 
       ledger.forEach(r => {
-        tsv += `${r.periodLabel}\t${r.openingBalance.toFixed(2)}\t${r.deposits.toFixed(2)}\t${r.grossInterest.toFixed(2)}\t${r.taxDeducted.toFixed(2)}\t${r.netInterest.toFixed(2)}\t${r.endingBalance.toFixed(2)}\n`;
+        tsv += `${r.periodLabel}	${r.openingBalance.toFixed(2)}	${r.deposits.toFixed(2)}	${r.grossInterest.toFixed(2)}	${r.taxDeducted.toFixed(2)}	${r.netInterest.toFixed(2)}	${r.endingBalance.toFixed(2)}
+`;
       });
 
       navigator.clipboard.writeText(tsv).then(() => {
@@ -2009,11 +2650,22 @@
     }
 
     /* ======================================================== */
-    /* SCENARIO PRESETS & RESET */
+    /* PRESET SCENARIOS & MODAL                                 */
     /* ======================================================== */
-    function loadScenario(type) {
-      document.getElementById('scenarioDropdown').classList.add('hidden');
+    function openPresetsModal() {
+      document.getElementById('presetsModal').classList.remove('hidden');
+    }
 
+    function closePresetsModal() {
+      document.getElementById('presetsModal').classList.add('hidden');
+    }
+
+    function applyScenarioAndClose(type) {
+      loadScenario(type);
+      closePresetsModal();
+    }
+
+    function loadScenario(type) {
       if (type === 'sp500') {
         state.currency = '$';
         state.initialPrincipal = 10000;
@@ -2077,6 +2729,38 @@
         state.annualStepUpPct = 0;
         state.taxEnabled = true;
         state.taxRatePct = 15.0;
+        state.taxTiming = 'cycle';
+      } else if (type === 'emergency') {
+        state.currency = '$';
+        state.initialPrincipal = 5000;
+        state.interestRate = 4.0;
+        state.ratePeriod = 'annual';
+        state.compoundingFreq = 'monthly';
+        state.years = 3;
+        state.months = 0;
+        state.contribType = 'deposit';
+        state.contribAmount = 300;
+        state.contribFreq = 'monthly';
+        state.contribTiming = 'beginning';
+        state.annualStepUpPct = 0;
+        state.taxEnabled = false;
+        state.taxRatePct = 25.0;
+        state.taxTiming = 'cycle';
+      } else if (type === 'aggressive') {
+        state.currency = '$';
+        state.initialPrincipal = 15000;
+        state.interestRate = 12.0;
+        state.ratePeriod = 'annual';
+        state.compoundingFreq = 'monthly';
+        state.years = 15;
+        state.months = 0;
+        state.contribType = 'deposit';
+        state.contribAmount = 600;
+        state.contribFreq = 'monthly';
+        state.contribTiming = 'end';
+        state.annualStepUpPct = 5.0;
+        state.taxEnabled = true;
+        state.taxRatePct = 20.0;
         state.taxTiming = 'cycle';
       }
 
@@ -2146,7 +2830,7 @@
       document.getElementById('taxToggle').checked = state.taxEnabled;
       const taxDetails = document.getElementById('taxDetailsSection');
       if (state.taxEnabled) {
-        taxDetails.style.maxHeight = '500px';
+        taxDetails.style.maxHeight = '600px';
         taxDetails.style.opacity = '1';
       } else {
         taxDetails.style.maxHeight = '0px';
@@ -2163,7 +2847,7 @@
     }
 
     /* ======================================================== */
-    /* UTILITY FORMATTERS */
+    /* UTILITY FORMATTERS                                       */
     /* ======================================================== */
     function formatCurrency(val, symbol = state.currency, forceDecimals = true) {
       if (val === undefined || val === null || isNaN(val)) return `${symbol}0.00`;
