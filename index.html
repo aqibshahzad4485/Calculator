@@ -1,0 +1,2199 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compound Interest & Post-Tax Growth Calculator</title>
+  <meta name="description" content="Modern, responsive compound interest calculator inspired by thecalculatorsite.com with post-tax compounding, recurring contributions, step-up deposits, and interactive charts.">
+  
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            slate: {
+              750: '#293548',
+              850: '#141e30',
+              900: '#0f172a',
+              950: '#090d16',
+            },
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.4);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(100, 116, 139, 0.4);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.7);
+    }
+    html:not(.dark) ::-webkit-scrollbar-track {
+      background: rgba(241, 245, 249, 0.8);
+    }
+    html:not(.dark) ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.5);
+    }
+
+    /* Remove number spinners */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+
+    /* Custom Range Slider */
+    input[type=range] {
+      -webkit-appearance: none;
+      height: 6px;
+      border-radius: 3px;
+      background: #334155;
+      outline: none;
+    }
+    .dark input[type=range] {
+      background: #334155;
+    }
+    html:not(.dark) input[type=range] {
+      background: #cbd5e1;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #3b82f6;
+      cursor: pointer;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      background: #2563eb;
+    }
+
+    /* Smooth accordion animation */
+    .expandable-section {
+      transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+      overflow: hidden;
+    }
+
+    /* Table styles */
+    .table-container {
+      scrollbar-width: thin;
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+      .no-print, header, .table-pagination, #toastNotification {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+      .table-container {
+        max-height: none !important;
+        overflow: visible !important;
+      }
+      .shadow-lg, .shadow-xl, .shadow-sm {
+        box-shadow: none !important;
+      }
+      .border {
+        border-color: #cbd5e1 !important;
+      }
+      table {
+        font-size: 10px !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-brand-500 selection:text-white transition-colors duration-200">
+
+  <!-- Top Sticky Navigation Bar -->
+  <header class="sticky top-0 z-40 w-full backdrop-blur-md bg-slate-900/85 dark:bg-slate-900/85 border-b border-slate-800 dark:border-slate-800 transition-colors duration-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Logo and Brand -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-brand-500/20 text-white font-extrabold text-xl">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-1">
+              <span>Compound</span><span class="text-brand-500">Pro</span>
+            </h1>
+            <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">
+              Tax-Withholding Engine
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Inspired by TheCalculatorSite • High-Precision Deterministic Simulator</p>
+        </div>
+      </div>
+
+      <!-- Quick Action Controls -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        
+        <!-- Preset Scenarios Dropdown -->
+        <div class="relative">
+          <button id="scenarioMenuBtn" class="flex items-center space-x-1.5 text-xs font-medium px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-brand-500 dark:text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+            </svg>
+            <span class="hidden md:inline font-semibold">Presets</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+          
+          <!-- Dropdown Menu -->
+          <div id="scenarioDropdown" class="hidden absolute right-0 mt-2 w-72 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl py-2 z-50 text-xs">
+            <div class="px-3.5 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Financial Scenarios</div>
+            <button onclick="loadScenario('sp500')" class="w-full text-left px-3.5 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-slate-800 dark:text-slate-200 transition">
+              <div>
+                <div class="font-semibold text-brand-600 dark:text-brand-400">S&P 500 Index Fund</div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400">$10k start, $500/mo, 10% APR, 15% Tax</div>
+              </div>
+            </button>
+            <button onclick="loadScenario('hysa')" class="w-full text-left px-3.5 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-slate-800 dark:text-slate-200 transition">
+              <div>
+                <div class="font-semibold text-emerald-600 dark:text-emerald-400">High-Yield Savings (Daily)</div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400">$20k start, $1k/mo, 4.5% APR Daily, 24% Tax</div>
+              </div>
+            </button>
+            <button onclick="loadScenario('nestEgg')" class="w-full text-left px-3.5 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-slate-800 dark:text-slate-200 transition">
+              <div>
+                <div class="font-semibold text-indigo-600 dark:text-indigo-400">30-Year Retirement Nest Egg</div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400">$50k start, $750/mo + 3% step-up, 8% APR</div>
+              </div>
+            </button>
+            <button onclick="loadScenario('dividend')" class="w-full text-left px-3.5 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-slate-800 dark:text-slate-200 transition">
+              <div>
+                <div class="font-semibold text-amber-600 dark:text-amber-400">Dividend Portfolio (Quarterly)</div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400">$25k start, 6.5% APR Quarterly, $400/mo</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Reset Button -->
+        <button id="resetBtn" title="Reset parameters to defaults" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+
+        <!-- Dark/Light Theme Toggle -->
+        <button id="themeToggleBtn" title="Toggle Dark/Light Mode" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition">
+          <svg id="sunIcon" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 hidden text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 9h-1m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <svg id="moonIcon" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+          </svg>
+        </button>
+
+        <!-- Prominent Calculate Button -->
+        <button id="calculateMainBtn" class="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-brand-600 hover:bg-brand-500 active:scale-95 text-white font-semibold text-xs shadow-md shadow-brand-600/30 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+          <span>Calculate</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- ========================================== -->
+      <!-- LEFT COLUMN: CONTROLS & INPUTS (lg:col-span-5) -->
+      <!-- ========================================== -->
+      <div class="lg:col-span-5 space-y-5">
+        
+        <!-- CARD 1: CORE INVESTMENT PARAMETERS -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl relative overflow-hidden transition-colors">
+          <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center space-x-2.5">
+              <div class="w-7 h-7 rounded-lg bg-brand-500/10 text-brand-600 dark:text-brand-400 flex items-center justify-center font-bold text-xs">
+                1
+              </div>
+              <h2 class="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-slate-200">Investment Setup</h2>
+            </div>
+            
+            <!-- Currency Selector -->
+            <div class="flex items-center space-x-1.5">
+              <label for="currencySelect" class="text-xs text-slate-500 dark:text-slate-400 font-medium">Currency:</label>
+              <select id="currencySelect" class="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-lg px-2.5 py-1 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <option value="$" selected>$ (USD)</option>
+                <option value="€">€ (EUR)</option>
+                <option value="£">£ (GBP)</option>
+                <option value="₹">₹ (INR)</option>
+                <option value="¥">¥ (JPY)</option>
+                <option value="custom">Custom...</option>
+              </select>
+              <input type="text" id="customCurrencyInput" placeholder="Symbol" maxlength="4" class="hidden w-16 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs rounded-lg px-2 py-1 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 text-center font-mono">
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Initial Principal -->
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label for="principalInput" class="text-xs font-semibold text-slate-700 dark:text-slate-300">Initial Balance / Principal</label>
+                <span class="text-[11px] text-slate-500 dark:text-slate-400 font-mono font-medium" id="principalFormattedDisplay">$10,000.00</span>
+              </div>
+              <div class="relative rounded-xl shadow-sm">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-mono font-bold curr-symbol">
+                  $
+                </div>
+                <input type="number" id="principalInput" value="10000" min="0" step="500" class="w-full bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 font-mono font-medium text-sm rounded-xl pl-9 pr-3 py-2.5 border border-slate-300 dark:border-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
+              </div>
+              
+              <!-- Quick Principal Presets -->
+              <div class="flex flex-wrap gap-1.5 mt-2">
+                <button type="button" onclick="setPrincipal(1000)" class="text-[11px] px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 transition font-mono">+1k</button>
+                <button type="button" onclick="setPrincipal(5000)" class="text-[11px] px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 transition font-mono">+5k</button>
+                <button type="button" onclick="setPrincipal(10000)" class="text-[11px] px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 transition font-mono">+10k</button>
+                <button type="button" onclick="setPrincipal(25000)" class="text-[11px] px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 transition font-mono">+25k</button>
+                <button type="button" onclick="setPrincipal(50000)" class="text-[11px] px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 transition font-mono">+50k</button>
+                <button type="button" onclick="setPrincipal(100000)" class="text-[11px] px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-750 transition font-mono">+100k</button>
+              </div>
+            </div>
+
+            <!-- Interest Rate & Rate Period Selector -->
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <div class="sm:col-span-7">
+                <label for="interestRateInput" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Interest Rate (%)</label>
+                <div class="relative rounded-xl shadow-sm">
+                  <input type="number" id="interestRateInput" value="7.0" min="0" max="100" step="0.1" class="w-full bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 font-mono font-medium text-sm rounded-xl pl-3.5 pr-8 py-2.5 border border-slate-300 dark:border-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
+                  <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400 font-bold">
+                    %
+                  </div>
+                </div>
+              </div>
+              <div class="sm:col-span-5">
+                <label for="ratePeriodSelect" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Rate Period</label>
+                <select id="ratePeriodSelect" class="w-full bg-slate-50 dark:bg-slate-800/90 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3 py-2.5 border border-slate-300 dark:border-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
+                  <option value="annual" selected>Annual (APR)</option>
+                  <option value="semiannual">Semi-annual</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+            </div>
+            <div id="rateEquivalentNote" class="text-[11px] text-slate-500 dark:text-slate-400">
+              Nominal Annual APR: <span class="font-mono text-emerald-600 dark:text-emerald-400 font-bold" id="nominalAprDisplay">7.00%</span>
+            </div>
+
+            <!-- Compounding Frequency -->
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label for="compoundFreqSelect" class="text-xs font-semibold text-slate-700 dark:text-slate-300">Compounding Frequency</label>
+                <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium" id="compoundFreqHelper">12 times per year</span>
+              </div>
+              <select id="compoundFreqSelect" class="w-full bg-slate-50 dark:bg-slate-800/90 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3 py-2.5 border border-slate-300 dark:border-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none transition">
+                <option value="daily365">Daily (365/year)</option>
+                <option value="daily360">Daily (360/year)</option>
+                <option value="weekly">Weekly (52/year)</option>
+                <option value="biweekly">Bi-Weekly (26/year)</option>
+                <option value="monthly" selected>Monthly (12/year)</option>
+                <option value="quarterly">Quarterly (4/year)</option>
+                <option value="halfyearly">Half-Yearly (2/year)</option>
+                <option value="yearly">Yearly (1/year)</option>
+              </select>
+            </div>
+
+            <!-- Investment Period (Years and Months) -->
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Investment Horizon</label>
+                <span class="text-[11px] text-brand-600 dark:text-brand-400 font-mono font-bold" id="totalDurationDisplay">10 Years (120 Months)</span>
+              </div>
+              
+              <div class="grid grid-cols-2 gap-3 mb-2">
+                <div class="relative">
+                  <input type="number" id="yearsInput" value="10" min="0" max="100" class="w-full bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 font-mono text-xs rounded-xl pl-3 pr-12 py-2 border border-slate-300 dark:border-slate-700 focus:border-brand-500 outline-none">
+                  <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-slate-400 pointer-events-none font-medium">Years</span>
+                </div>
+                <div class="relative">
+                  <input type="number" id="monthsInput" value="0" min="0" max="11" class="w-full bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 font-mono text-xs rounded-xl pl-3 pr-14 py-2 border border-slate-300 dark:border-slate-700 focus:border-brand-500 outline-none">
+                  <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-slate-400 pointer-events-none font-medium">Months</span>
+                </div>
+              </div>
+
+              <!-- Quick Year Presets -->
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" onclick="setYears(1)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">1Y</button>
+                <button type="button" onclick="setYears(3)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">3Y</button>
+                <button type="button" onclick="setYears(5)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">5Y</button>
+                <button type="button" onclick="setYears(10)" class="text-[10px] px-2 py-0.5 rounded bg-brand-500/10 text-brand-600 dark:text-brand-300 border border-brand-500/30 font-semibold">10Y</button>
+                <button type="button" onclick="setYears(15)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">15Y</button>
+                <button type="button" onclick="setYears(20)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">20Y</button>
+                <button type="button" onclick="setYears(25)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">25Y</button>
+                <button type="button" onclick="setYears(30)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">30Y</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- CARD 2: REGULAR CONTRIBUTIONS / WITHDRAWALS -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl transition-colors">
+          <div class="flex items-center space-x-2.5 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div class="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs">
+              2
+            </div>
+            <h2 class="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-slate-200">Regular Contributions</h2>
+          </div>
+
+          <!-- Contribution Action Toggle -->
+          <div class="mb-4">
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Contribution Action</label>
+            <div class="grid grid-cols-3 gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-medium text-center">
+              <label class="cursor-pointer">
+                <input type="radio" name="contribType" value="none" class="sr-only peer">
+                <div class="py-1.5 rounded-lg text-slate-500 dark:text-slate-400 peer-checked:bg-white dark:peer-checked:bg-slate-700 peer-checked:text-slate-900 dark:peer-checked:text-white peer-checked:shadow-sm transition">None</div>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="contribType" value="deposit" checked class="sr-only peer">
+                <div class="py-1.5 rounded-lg text-slate-500 dark:text-slate-400 peer-checked:bg-brand-600 peer-checked:text-white transition font-bold shadow-sm">Deposits (+)</div>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="contribType" value="withdrawal" class="sr-only peer">
+                <div class="py-1.5 rounded-lg text-slate-500 dark:text-slate-400 peer-checked:bg-rose-600 peer-checked:text-white transition font-bold shadow-sm">Withdrawals (-)</div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Dynamic Contribution Inputs (Hidden if 'none') -->
+          <div id="contribFieldsWrapper" class="space-y-4">
+            <!-- Amount & Frequency -->
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <div class="sm:col-span-7">
+                <label for="contribAmountInput" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Amount</label>
+                <div class="relative rounded-xl shadow-sm">
+                  <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 font-mono font-bold curr-symbol">
+                    $
+                  </div>
+                  <input type="number" id="contribAmountInput" value="500" min="0" step="50" class="w-full bg-slate-50 dark:bg-slate-800/90 text-slate-900 dark:text-slate-100 font-mono font-medium text-sm rounded-xl pl-9 pr-3 py-2.5 border border-slate-300 dark:border-slate-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition">
+                </div>
+              </div>
+              <div class="sm:col-span-5">
+                <label for="contribFreqSelect" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Frequency</label>
+                <select id="contribFreqSelect" class="w-full bg-slate-50 dark:bg-slate-800/90 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3 py-2.5 border border-slate-300 dark:border-slate-700 focus:border-indigo-500 outline-none transition">
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Bi-Weekly</option>
+                  <option value="monthly" selected>Monthly</option>
+                  <option value="quarterly">Quarterly</option>
+                  <option value="halfyearly">Half-Yearly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Quick Contribution Presets -->
+            <div class="flex flex-wrap gap-1.5">
+              <button type="button" onclick="setContribAmount(100)" class="text-[11px] px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">100</button>
+              <button type="button" onclick="setContribAmount(250)" class="text-[11px] px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">250</button>
+              <button type="button" onclick="setContribAmount(500)" class="text-[11px] px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">500</button>
+              <button type="button" onclick="setContribAmount(1000)" class="text-[11px] px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">1,000</button>
+              <button type="button" onclick="setContribAmount(2000)" class="text-[11px] px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">2,000</button>
+            </div>
+
+            <!-- Timing (Beginning vs End) -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Deposit / Withdrawal Timing</label>
+              <div class="grid grid-cols-2 gap-2">
+                <label class="flex items-center p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                  <input type="radio" name="contribTiming" value="end" checked class="text-indigo-600 focus:ring-0 mr-2.5">
+                  <div>
+                    <div class="text-xs font-semibold text-slate-800 dark:text-slate-200">End of Period</div>
+                    <div class="text-[10px] text-slate-500 dark:text-slate-400">Ordinary Annuity</div>
+                  </div>
+                </label>
+                <label class="flex items-center p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                  <input type="radio" name="contribTiming" value="beginning" class="text-indigo-600 focus:ring-0 mr-2.5">
+                  <div>
+                    <div class="text-xs font-semibold text-slate-800 dark:text-slate-200">Beginning of Period</div>
+                    <div class="text-[10px] text-slate-500 dark:text-slate-400">Annuity Due (compounds sooner)</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Annual Contribution Step-Up (%) -->
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label for="stepUpInput" class="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                  <span>Annual Step-Up Rate</span>
+                  <span class="text-slate-400 cursor-help" title="Automatically escalates contribution amount by this percentage every 12 months (e.g. to match salary inflation).">ⓘ</span>
+                </label>
+                <span class="text-[11px] text-indigo-600 dark:text-indigo-400 font-mono font-bold" id="stepUpDisplay">0.0% / yr</span>
+              </div>
+              <div class="flex items-center space-x-3">
+                <input type="range" id="stepUpSlider" min="0" max="15" step="0.5" value="0" class="w-full">
+                <div class="relative w-20 flex-shrink-0">
+                  <input type="number" id="stepUpInput" value="0" min="0" max="50" step="0.5" class="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-mono text-xs rounded-lg px-2 py-1.5 pr-5 border border-slate-300 dark:border-slate-700 text-right">
+                  <span class="absolute inset-y-0 right-0 pr-2 flex items-center text-xs text-slate-400 pointer-events-none">%</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- CARD 3: POST-TAX COMPOUNDING & WITHHOLDING -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl relative overflow-hidden transition-all duration-300">
+          <div class="flex items-center justify-between mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center space-x-2.5">
+              <div class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold text-xs">
+                3
+              </div>
+              <div>
+                <h2 class="text-xs font-bold tracking-wider uppercase text-slate-800 dark:text-slate-200">Tax Withholding on Interest</h2>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">Model post-tax compounding velocity and tax drag</p>
+              </div>
+            </div>
+
+            <!-- Toggle Switch -->
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="taxToggle" class="sr-only peer">
+              <div class="w-11 h-6 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-500"></div>
+            </label>
+          </div>
+
+          <!-- Tax Inputs (Expandable) -->
+          <div id="taxDetailsSection" class="expandable-section space-y-4 max-h-0 opacity-0">
+            <!-- Tax Rate Input & Presets -->
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label for="taxRateInput" class="text-xs font-semibold text-slate-700 dark:text-slate-300">Tax Rate on Interest</label>
+                <span class="text-[11px] text-rose-600 dark:text-rose-400 font-mono font-bold" id="taxRateDisplay">25.0%</span>
+              </div>
+              <div class="flex items-center space-x-3 mb-2">
+                <input type="range" id="taxRateSlider" min="0" max="60" step="1" value="25" class="w-full">
+                <div class="relative w-20 flex-shrink-0">
+                  <input type="number" id="taxRateInput" value="25" min="0" max="100" step="0.5" class="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-mono text-xs rounded-lg px-2 py-1.5 pr-5 border border-slate-300 dark:border-slate-700 text-right">
+                  <span class="absolute inset-y-0 right-0 pr-2 flex items-center text-xs text-slate-400 pointer-events-none">%</span>
+                </div>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" onclick="setTaxRate(15)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">15%</button>
+                <button type="button" onclick="setTaxRate(20)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">20%</button>
+                <button type="button" onclick="setTaxRate(25)" class="text-[10px] px-2 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-300 border border-rose-500/30 font-mono font-bold">25%</button>
+                <button type="button" onclick="setTaxRate(30)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">30%</button>
+                <button type="button" onclick="setTaxRate(37)" class="text-[10px] px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono">37%</button>
+              </div>
+            </div>
+
+            <!-- Tax Deduction Timing -->
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Tax Deduction Timing</label>
+              <div class="space-y-2">
+                <label class="flex items-start p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                  <input type="radio" name="taxTiming" value="cycle" checked class="text-rose-500 focus:ring-0 mt-0.5 mr-2.5">
+                  <div>
+                    <div class="text-xs font-semibold text-slate-800 dark:text-slate-200">Deduct per compounding cycle</div>
+                    <div class="text-[10px] text-slate-500 dark:text-slate-400">Withholds tax immediately each cycle and reinvests only net interest into the compounding balance.</div>
+                  </div>
+                </label>
+                <label class="flex items-start p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                  <input type="radio" name="taxTiming" value="annual" class="text-rose-500 focus:ring-0 mt-0.5 mr-2.5">
+                  <div>
+                    <div class="text-xs font-semibold text-slate-800 dark:text-slate-200">Deduct annually</div>
+                    <div class="text-[10px] text-slate-500 dark:text-slate-400">Gross interest compounds fully throughout the year; tax on accrued gross interest is deducted at year-end.</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Tax Drag Callout Box -->
+            <div class="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 text-xs space-y-1">
+              <div class="flex items-center justify-between text-rose-700 dark:text-rose-300 font-bold">
+                <span>Calculated Tax Drag:</span>
+                <span id="taxDragAmount" class="font-mono text-rose-600 dark:text-rose-400 font-extrabold text-sm">$0.00</span>
+              </div>
+              <p class="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                Represents total compound growth forfeited due to taxes reducing the principal reinvestment base over time.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ========================================== -->
+      <!-- RIGHT COLUMN: DASHBOARD & OUTPUTS (lg:col-span-7) -->
+      <!-- ========================================== -->
+      <div class="lg:col-span-7 space-y-6">
+
+        <!-- 6 KPI STAT CARDS -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
+          
+          <!-- Card 1: Future Investment Value (Hero) -->
+          <div class="col-span-2 sm:col-span-1 bg-gradient-to-br from-slate-900 via-slate-850 to-brand-950/40 text-white border border-brand-500/30 rounded-2xl p-4 shadow-xl relative overflow-hidden">
+            <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-brand-500/10 rounded-full blur-xl pointer-events-none"></div>
+            <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+              <span>Final Balance</span>
+              <span id="kpiGrowthBadge" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono">+125%</span>
+            </div>
+            <div id="kpiFinalBalance" class="text-xl sm:text-2xl font-extrabold text-white font-mono tracking-tight">$0.00</div>
+            <div class="text-[10px] text-slate-400 mt-1 font-medium" id="kpiMultiplierBadge">2.25x Initial Investment</div>
+          </div>
+
+          <!-- Card 2: Gross Interest Earned -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl transition-colors">
+            <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+              <span>Gross Interest</span>
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            </div>
+            <div id="kpiGrossInterest" class="text-base sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 font-mono tracking-tight">$0.00</div>
+            <div class="text-[10px] text-slate-500 dark:text-slate-500 mt-1">Pre-tax accrued earnings</div>
+          </div>
+
+          <!-- Card 3: Tax Deducted -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl transition-colors">
+            <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
+              <span>Tax Withheld</span>
+              <span id="kpiTaxStatusDot" class="w-2 h-2 rounded-full bg-rose-500"></span>
+            </div>
+            <div id="kpiTotalTax" class="text-base sm:text-xl font-bold text-rose-600 dark:text-rose-400 font-mono tracking-tight">$0.00</div>
+            <div class="text-[10px] text-slate-500 dark:text-slate-500 mt-1" id="kpiTaxEffectiveRate">0.0% of gross interest</div>
+          </div>
+
+          <!-- Card 4: Net Interest Retained -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl transition-colors">
+            <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Net Interest Retained</div>
+            <div id="kpiNetInterest" class="text-base sm:text-xl font-bold text-brand-600 dark:text-brand-400 font-mono tracking-tight">$0.00</div>
+            <div class="text-[10px] text-slate-500 dark:text-slate-500 mt-1">Actual take-home profit</div>
+          </div>
+
+          <!-- Card 5: Principal + Deposits -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl transition-colors">
+            <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Total Cash Invested</div>
+            <div id="kpiTotalInvested" class="text-base sm:text-xl font-bold text-slate-800 dark:text-slate-200 font-mono tracking-tight">$0.00</div>
+            <div class="text-[10px] text-slate-500 dark:text-slate-500 mt-1" id="kpiContribPortion">$10,000 + $0 contrib.</div>
+          </div>
+
+          <!-- Card 6: Effective APY -->
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl transition-colors">
+            <div class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Effective APY</div>
+            <div id="kpiEffectiveApy" class="text-base sm:text-xl font-bold text-indigo-600 dark:text-indigo-400 font-mono tracking-tight">0.00%</div>
+            <div class="text-[10px] text-slate-500 dark:text-slate-500 mt-1" id="kpiRealizedRate">Compounded net annual rate</div>
+          </div>
+
+        </div>
+
+        <!-- INTERACTIVE CHART SECTION -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl transition-colors">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-brand-500 dark:text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                </svg>
+                <span>Growth Trajectory & Asset Composition</span>
+              </h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Dynamic projection comparing principal, deposits, and compound gains</p>
+            </div>
+
+            <!-- Chart Type Selector -->
+            <div class="flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+              <button type="button" onclick="setChartType('stackedArea')" id="chartBtnArea" class="px-2.5 py-1 rounded-lg font-semibold text-white bg-slate-700 shadow transition">
+                Stacked Area
+              </button>
+              <button type="button" onclick="setChartType('line')" id="chartBtnLine" class="px-2.5 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
+                Lines
+              </button>
+              <button type="button" onclick="setChartType('bar')" id="chartBtnBar" class="px-2.5 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
+                Annual Bars
+              </button>
+            </div>
+          </div>
+
+          <!-- Chart Canvas Container -->
+          <div class="relative h-72 sm:h-80 w-full">
+            <canvas id="growthChart"></canvas>
+          </div>
+
+          <!-- Chart Legend & Composition Bar -->
+          <div class="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80">
+            <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400 mb-1.5 font-medium">
+              <span>Asset Composition</span>
+              <span id="compositionRatioText" class="font-mono text-slate-700 dark:text-slate-300 font-semibold">Principal: 40% | Deposits: 30% | Net Interest: 30%</span>
+            </div>
+            <div class="w-full h-3 rounded-full overflow-hidden flex bg-slate-200 dark:bg-slate-800">
+              <div id="compBarPrincipal" class="bg-slate-400 dark:bg-slate-500 h-full transition-all duration-300" style="width: 33%" title="Principal"></div>
+              <div id="compBarDeposits" class="bg-indigo-500 h-full transition-all duration-300" style="width: 33%" title="Deposits"></div>
+              <div id="compBarInterest" class="bg-emerald-500 h-full transition-all duration-300" style="width: 34%" title="Net Interest"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- WEALTH MILESTONES & INSIGHTS CARD -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xl grid grid-cols-1 md:grid-cols-3 gap-3 text-xs transition-colors">
+          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750 flex items-start space-x-2.5">
+            <div class="p-1.5 rounded-lg bg-brand-500/10 dark:bg-brand-500/20 text-brand-600 dark:text-brand-400 mt-0.5">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <div class="font-bold text-slate-800 dark:text-slate-200">Rule of 72 Doubling</div>
+              <div class="text-slate-500 dark:text-slate-400 mt-0.5" id="insightDoublingTime">Doubles every 10.3 years</div>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750 flex items-start space-x-2.5">
+            <div class="p-1.5 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 mt-0.5">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div>
+              <div class="font-bold text-slate-800 dark:text-slate-200">Interest Crossover</div>
+              <div class="text-slate-500 dark:text-slate-400 mt-0.5" id="insightCrossover">Interest exceeds deposits in Yr 5</div>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-750 flex items-start space-x-2.5">
+            <div class="p-1.5 rounded-lg bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 mt-0.5">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <div>
+              <div class="font-bold text-slate-800 dark:text-slate-200">Total Money Velocity</div>
+              <div class="text-slate-500 dark:text-slate-400 mt-0.5" id="insightMultiplier">Growth makes up 54% of balance</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BREAKDOWN TABLE SECTION -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl overflow-hidden transition-colors">
+          
+          <!-- Table Controls Header -->
+          <div class="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-500 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span>Projection Schedule & Breakdown</span>
+              </h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Deterministic period-by-period accounting ledger</p>
+            </div>
+
+            <!-- View Toggle & Export Buttons -->
+            <div class="flex flex-wrap items-center gap-2">
+              
+              <!-- Period Mode Toggle (Yearly vs Monthly) -->
+              <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+                <button type="button" id="tabYearlyBtn" onclick="setTableMode('yearly')" class="px-3 py-1 rounded-lg font-bold text-white bg-brand-600 shadow transition">
+                  Yearly
+                </button>
+                <button type="button" id="tabMonthlyBtn" onclick="setTableMode('monthly')" class="px-3 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
+                  Monthly
+                </button>
+              </div>
+
+              <!-- Rows Per Page -->
+              <div class="flex items-center space-x-1 text-xs">
+                <label for="rowsPerPageSelect" class="text-slate-400 hidden sm:inline">Rows:</label>
+                <select id="rowsPerPageSelect" class="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium rounded-lg px-2 py-1.5 border border-slate-300 dark:border-slate-700 focus:outline-none">
+                  <option value="12">12</option>
+                  <option value="24">24</option>
+                  <option value="60">60</option>
+                  <option value="all">All</option>
+                </select>
+              </div>
+
+              <!-- Export CSV Button -->
+              <button type="button" onclick="exportToCSV()" class="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 text-xs font-semibold transition" title="Export as CSV spreadsheet">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span class="hidden sm:inline">CSV</span>
+              </button>
+
+              <!-- Copy to Clipboard Button -->
+              <button type="button" onclick="copyTableToClipboard()" class="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 text-xs font-semibold transition" title="Copy table formatted for Excel">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                </svg>
+                <span class="hidden sm:inline">Copy</span>
+              </button>
+
+              <!-- Print / PDF Button -->
+              <button type="button" onclick="window.print()" class="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 text-xs font-semibold transition" title="Print or save as PDF">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                <span class="hidden sm:inline">Print</span>
+              </button>
+
+            </div>
+          </div>
+
+          <!-- Table Responsive Scroll Container -->
+          <div class="table-container max-h-96 overflow-y-auto overflow-x-auto">
+            <table class="w-full text-left text-xs font-mono">
+              <thead class="bg-slate-100 dark:bg-slate-850 text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[11px] sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800 shadow-sm">
+                <tr>
+                  <th class="py-3 px-3.5 font-bold">Period</th>
+                  <th class="py-3 px-3.5 font-bold text-right">Opening Balance</th>
+                  <th class="py-3 px-3.5 font-bold text-right">Deposits / Withdrawals</th>
+                  <th class="py-3 px-3.5 font-bold text-right text-emerald-600 dark:text-emerald-400">Gross Interest</th>
+                  <th class="py-3 px-3.5 font-bold text-right text-rose-600 dark:text-rose-400" id="thTaxCol">Tax Deducted</th>
+                  <th class="py-3 px-3.5 font-bold text-right text-brand-600 dark:text-brand-400">Net Interest</th>
+                  <th class="py-3 px-3.5 font-bold text-right text-slate-900 dark:text-white">Ending Balance</th>
+                </tr>
+              </thead>
+              <tbody id="breakdownTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/60 text-slate-700 dark:text-slate-300">
+                <!-- Dynamically injected rows -->
+              </tbody>
+              <tfoot class="bg-slate-100 dark:bg-slate-850 font-semibold text-slate-900 dark:text-slate-100 border-t-2 border-slate-300 dark:border-slate-700 sticky bottom-0">
+                <tr id="tableTotalsRow">
+                  <!-- Dynamically injected totals -->
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- Table Pagination / Record Stats Footer -->
+          <div class="table-pagination p-3 bg-slate-50 dark:bg-slate-850/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <div id="tableRecordStats">Showing 0 rows</div>
+            <div class="flex items-center space-x-2">
+              <button id="prevPageBtn" onclick="changeTablePage(-1)" class="px-2.5 py-1 rounded bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium transition">
+                Prev
+              </button>
+              <span id="pageIndicator" class="font-mono font-semibold text-slate-700 dark:text-slate-300">Page 1 / 1</span>
+              <button id="nextPageBtn" onclick="changeTablePage(1)" class="px-2.5 py-1 rounded bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed font-medium transition">
+                Next
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Toast Notification for Copying / Feedback -->
+  <div id="toastNotification" class="fixed bottom-6 right-6 z-50 transform translate-y-16 opacity-0 transition-all duration-300 flex items-center space-x-2 bg-slate-900 border border-emerald-500/50 text-emerald-300 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-semibold">
+    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+    </svg>
+    <span id="toastMessage">Copied breakdown table to clipboard!</span>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- JAVASCRIPT: DETERMINISTIC SIMULATION & UI ENGINE -->
+  <!-- ======================================================== -->
+  <script>
+    /* Global Application State */
+    const state = {
+      currency: '$',
+      initialPrincipal: 10000,
+      interestRate: 7.0,
+      ratePeriod: 'annual',
+      compoundingFreq: 'monthly',
+      years: 10,
+      months: 0,
+      contribType: 'deposit', // 'none', 'deposit', 'withdrawal'
+      contribAmount: 500,
+      contribFreq: 'monthly',
+      contribTiming: 'end', // 'beginning', 'end'
+      annualStepUpPct: 0.0,
+      taxEnabled: false,
+      taxRatePct: 25.0,
+      taxTiming: 'cycle', // 'cycle', 'annual'
+      
+      // View States
+      tableMode: 'yearly', // 'yearly', 'monthly'
+      tablePage: 1,
+      rowsPerPage: 12,
+      chartType: 'stackedArea', // 'stackedArea', 'line', 'bar'
+      
+      // Simulation Output Cache
+      simulationResult: null
+    };
+
+    let chartInstance = null;
+
+    /* Initialize Application on DOM Content Loaded */
+    document.addEventListener('DOMContentLoaded', () => {
+      initTheme();
+      bindInputEvents();
+      recalculate();
+    });
+
+    /* ======================================================== */
+    /* THEME MANAGER (DARK / LIGHT MODE) */
+    /* ======================================================== */
+    function initTheme() {
+      const savedTheme = localStorage.getItem('compound_theme') || 'dark';
+      applyTheme(savedTheme);
+      
+      document.getElementById('themeToggleBtn').addEventListener('click', () => {
+        const isDark = document.documentElement.classList.contains('dark');
+        const nextTheme = isDark ? 'light' : 'dark';
+        applyTheme(nextTheme);
+        localStorage.setItem('compound_theme', nextTheme);
+      });
+    }
+
+    function applyTheme(theme) {
+      const sunIcon = document.getElementById('sunIcon');
+      const moonIcon = document.getElementById('moonIcon');
+      
+      if (theme === 'light') {
+        document.documentElement.classList.remove('dark');
+        document.body.classList.remove('bg-slate-950', 'text-slate-100');
+        document.body.classList.add('bg-slate-50', 'text-slate-900');
+        sunIcon.classList.remove('hidden');
+        moonIcon.classList.add('hidden');
+      } else {
+        document.documentElement.classList.add('dark');
+        document.body.classList.remove('bg-slate-50', 'text-slate-900');
+        document.body.classList.add('bg-slate-950', 'text-slate-100');
+        sunIcon.classList.add('hidden');
+        moonIcon.classList.remove('hidden');
+      }
+
+      if (chartInstance && state.simulationResult) {
+        renderOrUpdateChart(state.simulationResult);
+      }
+    }
+
+    /* ======================================================== */
+    /* EVENT BINDING & LIVE SYNC */
+    /* ======================================================== */
+    function bindInputEvents() {
+      // Currency Select
+      const currencySelect = document.getElementById('currencySelect');
+      const customCurrencyInput = document.getElementById('customCurrencyInput');
+      
+      currencySelect.addEventListener('change', (e) => {
+        if (e.target.value === 'custom') {
+          customCurrencyInput.classList.remove('hidden');
+          customCurrencyInput.focus();
+          state.currency = customCurrencyInput.value || '¤';
+        } else {
+          customCurrencyInput.classList.add('hidden');
+          state.currency = e.target.value;
+        }
+        updateCurrencyAdornments();
+        recalculate();
+      });
+
+      customCurrencyInput.addEventListener('input', (e) => {
+        state.currency = e.target.value || '¤';
+        updateCurrencyAdornments();
+        recalculate();
+      });
+
+      // Principal Input
+      const principalInput = document.getElementById('principalInput');
+      principalInput.addEventListener('input', (e) => {
+        state.initialPrincipal = Math.max(0, parseFloat(e.target.value) || 0);
+        document.getElementById('principalFormattedDisplay').textContent = formatCurrency(state.initialPrincipal);
+        recalculate();
+      });
+
+      // Interest Rate & Rate Period
+      const rateInput = document.getElementById('interestRateInput');
+      const ratePeriodSelect = document.getElementById('ratePeriodSelect');
+      
+      rateInput.addEventListener('input', (e) => {
+        state.interestRate = Math.max(0, parseFloat(e.target.value) || 0);
+        updateRateDisplay();
+        recalculate();
+      });
+
+      ratePeriodSelect.addEventListener('change', (e) => {
+        state.ratePeriod = e.target.value;
+        updateRateDisplay();
+        recalculate();
+      });
+
+      // Compounding Frequency
+      const compoundFreqSelect = document.getElementById('compoundFreqSelect');
+      compoundFreqSelect.addEventListener('change', (e) => {
+        state.compoundingFreq = e.target.value;
+        updateCompoundFreqHelper();
+        recalculate();
+      });
+
+      // Investment Period (Years & Months)
+      const yearsInput = document.getElementById('yearsInput');
+      const monthsInput = document.getElementById('monthsInput');
+      
+      const updateDuration = () => {
+        state.years = Math.max(0, parseInt(yearsInput.value) || 0);
+        state.months = Math.max(0, Math.min(11, parseInt(monthsInput.value) || 0));
+        if (state.years === 0 && state.months === 0) {
+          state.months = 1;
+          monthsInput.value = 1;
+        }
+        const totalMonths = state.years * 12 + state.months;
+        document.getElementById('totalDurationDisplay').textContent = 
+          `${state.years} Years ${state.months > 0 ? state.months + ' Mo' : ''} (${totalMonths} Months)`;
+        recalculate();
+      };
+
+      yearsInput.addEventListener('input', updateDuration);
+      monthsInput.addEventListener('input', updateDuration);
+
+      // Contribution Type Radio
+      document.querySelectorAll('input[name="contribType"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+          state.contribType = e.target.value;
+          const wrapper = document.getElementById('contribFieldsWrapper');
+          if (state.contribType === 'none') {
+            wrapper.style.display = 'none';
+          } else {
+            wrapper.style.display = 'block';
+          }
+          recalculate();
+        });
+      });
+
+      // Contribution Amount & Frequency
+      const contribAmountInput = document.getElementById('contribAmountInput');
+      const contribFreqSelect = document.getElementById('contribFreqSelect');
+      
+      contribAmountInput.addEventListener('input', (e) => {
+        state.contribAmount = Math.max(0, parseFloat(e.target.value) || 0);
+        recalculate();
+      });
+
+      contribFreqSelect.addEventListener('change', (e) => {
+        state.contribFreq = e.target.value;
+        recalculate();
+      });
+
+      // Contribution Timing Radio
+      document.querySelectorAll('input[name="contribTiming"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+          state.contribTiming = e.target.value;
+          recalculate();
+        });
+      });
+
+      // Contribution Step-Up Slider & Input
+      const stepUpSlider = document.getElementById('stepUpSlider');
+      const stepUpInput = document.getElementById('stepUpInput');
+      
+      stepUpSlider.addEventListener('input', (e) => {
+        stepUpInput.value = e.target.value;
+        state.annualStepUpPct = parseFloat(e.target.value) || 0;
+        document.getElementById('stepUpDisplay').textContent = `${state.annualStepUpPct.toFixed(1)}% / yr`;
+        recalculate();
+      });
+
+      stepUpInput.addEventListener('input', (e) => {
+        stepUpSlider.value = e.target.value;
+        state.annualStepUpPct = Math.max(0, parseFloat(e.target.value) || 0);
+        document.getElementById('stepUpDisplay').textContent = `${state.annualStepUpPct.toFixed(1)}% / yr`;
+        recalculate();
+      });
+
+      // Tax Toggle
+      const taxToggle = document.getElementById('taxToggle');
+      const taxDetailsSection = document.getElementById('taxDetailsSection');
+      
+      taxToggle.addEventListener('change', (e) => {
+        state.taxEnabled = e.target.checked;
+        if (state.taxEnabled) {
+          taxDetailsSection.style.maxHeight = '500px';
+          taxDetailsSection.style.opacity = '1';
+        } else {
+          taxDetailsSection.style.maxHeight = '0px';
+          taxDetailsSection.style.opacity = '0';
+        }
+        recalculate();
+      });
+
+      // Tax Rate Slider & Input
+      const taxRateSlider = document.getElementById('taxRateSlider');
+      const taxRateInput = document.getElementById('taxRateInput');
+      
+      taxRateSlider.addEventListener('input', (e) => {
+        taxRateInput.value = e.target.value;
+        state.taxRatePct = parseFloat(e.target.value) || 0;
+        document.getElementById('taxRateDisplay').textContent = `${state.taxRatePct.toFixed(1)}%`;
+        recalculate();
+      });
+
+      taxRateInput.addEventListener('input', (e) => {
+        taxRateSlider.value = e.target.value;
+        state.taxRatePct = Math.max(0, parseFloat(e.target.value) || 0);
+        document.getElementById('taxRateDisplay').textContent = `${state.taxRatePct.toFixed(1)}%`;
+        recalculate();
+      });
+
+      // Tax Deduction Timing Radio
+      document.querySelectorAll('input[name="taxTiming"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+          state.taxTiming = e.target.value;
+          recalculate();
+        });
+      });
+
+      // Rows Per Page Select
+      document.getElementById('rowsPerPageSelect').addEventListener('change', (e) => {
+        const val = e.target.value;
+        state.rowsPerPage = (val === 'all') ? 999999 : parseInt(val);
+        state.tablePage = 1;
+        renderTable();
+      });
+
+      // Prominent Calculate Button
+      document.getElementById('calculateMainBtn').addEventListener('click', () => {
+        recalculate();
+        triggerCalculateFeedback();
+      });
+
+      // Reset Button
+      document.getElementById('resetBtn').addEventListener('click', () => {
+        resetDefaults();
+      });
+
+      // Preset Dropdown Trigger
+      const scenarioMenuBtn = document.getElementById('scenarioMenuBtn');
+      const scenarioDropdown = document.getElementById('scenarioDropdown');
+      scenarioMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        scenarioDropdown.classList.toggle('hidden');
+      });
+
+      document.addEventListener('click', () => {
+        scenarioDropdown.classList.add('hidden');
+      });
+    }
+
+    function updateCurrencyAdornments() {
+      document.querySelectorAll('.curr-symbol').forEach(el => {
+        el.textContent = state.currency;
+      });
+      document.getElementById('principalFormattedDisplay').textContent = formatCurrency(state.initialPrincipal);
+    }
+
+    function updateRateDisplay() {
+      let nominalRate = state.interestRate;
+      if (state.ratePeriod === 'semiannual') nominalRate *= 2;
+      else if (state.ratePeriod === 'quarterly') nominalRate *= 4;
+      else if (state.ratePeriod === 'monthly') nominalRate *= 12;
+
+      document.getElementById('nominalAprDisplay').textContent = `${nominalRate.toFixed(2)}%`;
+    }
+
+    function updateCompoundFreqHelper() {
+      const helper = document.getElementById('compoundFreqHelper');
+      const map = {
+        daily365: '365 times per year',
+        daily360: '360 times per year',
+        weekly: '52 times per year',
+        biweekly: '26 times per year',
+        monthly: '12 times per year',
+        quarterly: '4 times per year',
+        halfyearly: '2 times per year',
+        yearly: '1 time per year'
+      };
+      helper.textContent = map[state.compoundingFreq] || '';
+    }
+
+    /* Helper Quick Setters */
+    function setPrincipal(val) {
+      document.getElementById('principalInput').value = val;
+      state.initialPrincipal = val;
+      document.getElementById('principalFormattedDisplay').textContent = formatCurrency(val);
+      recalculate();
+    }
+
+    function setYears(y) {
+      document.getElementById('yearsInput').value = y;
+      document.getElementById('monthsInput').value = 0;
+      state.years = y;
+      state.months = 0;
+      document.getElementById('totalDurationDisplay').textContent = `${y} Years (${y * 12} Months)`;
+      recalculate();
+    }
+
+    function setContribAmount(amt) {
+      document.getElementById('contribAmountInput').value = amt;
+      state.contribAmount = amt;
+      recalculate();
+    }
+
+    function setTaxRate(rate) {
+      document.getElementById('taxRateInput').value = rate;
+      document.getElementById('taxRateSlider').value = rate;
+      state.taxRatePct = rate;
+      document.getElementById('taxRateDisplay').textContent = `${rate.toFixed(1)}%`;
+      recalculate();
+    }
+
+    function triggerCalculateFeedback() {
+      const btn = document.getElementById('calculateMainBtn');
+      btn.classList.add('ring-4', 'ring-brand-400/50');
+      setTimeout(() => {
+        btn.classList.remove('ring-4', 'ring-brand-400/50');
+      }, 300);
+      showToast('Calculations updated successfully.');
+    }
+
+    /* ======================================================== */
+    /* DETERMINISTIC STEP SIMULATION ENGINE */
+    /* ======================================================== */
+    function runDeterministicSimulation(taxOverride) {
+      const isTaxActive = (taxOverride !== undefined) ? taxOverride : state.taxEnabled;
+
+      const {
+        initialPrincipal,
+        interestRate,
+        ratePeriod,
+        compoundingFreq,
+        years,
+        months,
+        contribType,
+        contribAmount,
+        contribFreq,
+        contribTiming,
+        annualStepUpPct,
+        taxRatePct,
+        taxTiming
+      } = state;
+
+      // 1. Calculate nominal annual interest rate R_nominal
+      let nominalAnnualRate = interestRate / 100;
+      if (ratePeriod === 'semiannual') nominalAnnualRate *= 2;
+      else if (ratePeriod === 'quarterly') nominalAnnualRate *= 4;
+      else if (ratePeriod === 'monthly') nominalAnnualRate *= 12;
+
+      const totalMonths = (years * 12) + months;
+      if (totalMonths <= 0) {
+        return createEmptySimulation();
+      }
+
+      const is360 = (compoundingFreq === 'daily360');
+      const baseMonthDays = is360 
+        ? [30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30] 
+        : [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+      // Day-level simulation counters
+      let currentBalance = Math.max(0, initialPrincipal);
+      let cumulativeDeposits = 0;
+      let totalGrossInterest = 0;
+      let totalTaxPaid = 0;
+      let totalNetInterest = 0;
+
+      let accruedInterestCycle = 0;
+      let yearAccruedGrossInterest = 0;
+      let dayCounter = 0;
+
+      const monthlyLedger = [];
+      const yearlyLedger = [];
+
+      // Loop month by month
+      for (let m = 1; m <= totalMonths; m++) {
+        const monthOpeningBalance = currentBalance;
+        const monthIdx = (m - 1) % 12;
+        const daysInMonth = baseMonthDays[monthIdx];
+        const currentYear = Math.floor((m - 1) / 12) + 1;
+        const isYearEnd = (m % 12 === 0) || (m === totalMonths);
+
+        // Step-up multiplier for contributions (compounded annually)
+        const stepUpMultiplier = Math.pow(1 + (annualStepUpPct / 100), currentYear - 1);
+        let activeContrib = contribAmount * stepUpMultiplier;
+        if (contribType === 'withdrawal') activeContrib = -activeContrib;
+        else if (contribType === 'none') activeContrib = 0;
+
+        let monthGrossInterest = 0;
+        let monthTaxDeducted = 0;
+        let monthNetInterest = 0;
+        let monthDeposits = 0;
+
+        // Determine if monthly/quarterly/halfyearly/yearly contributions fall on this month
+        const shouldDepositMonthly = (contribFreq === 'monthly');
+        const shouldDepositQuarterly = (contribFreq === 'quarterly' && ((contribTiming === 'beginning' && (m % 3 === 1)) || (contribTiming === 'end' && (m % 3 === 0))));
+        const shouldDepositHalfYearly = (contribFreq === 'halfyearly' && ((contribTiming === 'beginning' && (m % 6 === 1)) || (contribTiming === 'end' && (m % 6 === 0))));
+        const shouldDepositYearly = (contribFreq === 'yearly' && ((contribTiming === 'beginning' && (m % 12 === 1)) || (contribTiming === 'end' && (m % 12 === 0))));
+
+        // Day-by-Day Step in this month
+        for (let d = 1; d <= daysInMonth; d++) {
+          dayCounter++;
+          const isMonthStart = (d === 1);
+          const isMonthEnd = (d === daysInMonth);
+
+          // 1. Beginning-of-period Contributions
+          if (contribTiming === 'beginning') {
+            if (isMonthStart && (shouldDepositMonthly || shouldDepositQuarterly || shouldDepositHalfYearly || shouldDepositYearly)) {
+              currentBalance += activeContrib;
+              monthDeposits += activeContrib;
+              cumulativeDeposits += activeContrib;
+            } else if (contribFreq === 'weekly' && ((dayCounter - 1) % 7 === 0)) {
+              currentBalance += activeContrib;
+              monthDeposits += activeContrib;
+              cumulativeDeposits += activeContrib;
+            } else if (contribFreq === 'biweekly' && ((dayCounter - 1) % 14 === 0)) {
+              currentBalance += activeContrib;
+              monthDeposits += activeContrib;
+              cumulativeDeposits += activeContrib;
+            }
+          }
+
+          // Balance cannot drop below zero
+          if (currentBalance < 0) currentBalance = 0;
+
+          // 2. Daily Interest Accrual calculation
+          let dailyRate = 0;
+          if (compoundingFreq === 'daily365') {
+            dailyRate = nominalAnnualRate / 365;
+          } else if (compoundingFreq === 'daily360') {
+            dailyRate = nominalAnnualRate / 360;
+          } else if (compoundingFreq === 'weekly') {
+            dailyRate = (nominalAnnualRate / 52) / 7;
+          } else if (compoundingFreq === 'biweekly') {
+            dailyRate = (nominalAnnualRate / 26) / 14;
+          } else if (compoundingFreq === 'monthly') {
+            dailyRate = (nominalAnnualRate / 12) / daysInMonth;
+          } else if (compoundingFreq === 'quarterly') {
+            dailyRate = (nominalAnnualRate / 4) / (is360 ? 90 : 91.25);
+          } else if (compoundingFreq === 'halfyearly') {
+            dailyRate = (nominalAnnualRate / 2) / (is360 ? 180 : 182.5);
+          } else if (compoundingFreq === 'yearly') {
+            dailyRate = nominalAnnualRate / (is360 ? 360 : 365);
+          }
+
+          const dailyGross = currentBalance * dailyRate;
+          accruedInterestCycle += dailyGross;
+          monthGrossInterest += dailyGross;
+          totalGrossInterest += dailyGross;
+
+          // Check if this day is a Compounding Event
+          let isCompoundDay = false;
+          if (compoundingFreq === 'daily365' || compoundingFreq === 'daily360') {
+            isCompoundDay = true;
+          } else if (compoundingFreq === 'weekly' && (dayCounter % 7 === 0)) {
+            isCompoundDay = true;
+          } else if (compoundingFreq === 'biweekly' && (dayCounter % 14 === 0)) {
+            isCompoundDay = true;
+          } else if (compoundingFreq === 'monthly' && isMonthEnd) {
+            isCompoundDay = true;
+          } else if (compoundingFreq === 'quarterly' && isMonthEnd && (m % 3 === 0)) {
+            isCompoundDay = true;
+          } else if (compoundingFreq === 'halfyearly' && isMonthEnd && (m % 6 === 0)) {
+            isCompoundDay = true;
+          } else if (compoundingFreq === 'yearly' && isMonthEnd && isYearEnd) {
+            isCompoundDay = true;
+          }
+
+          // Force compound at very end of simulation
+          if (m === totalMonths && isMonthEnd) {
+            isCompoundDay = true;
+          }
+
+          if (isCompoundDay && accruedInterestCycle > 0) {
+            if (isTaxActive) {
+              if (taxTiming === 'cycle') {
+                const tax = accruedInterestCycle * (taxRatePct / 100);
+                const net = accruedInterestCycle - tax;
+                currentBalance += net;
+                monthTaxDeducted += tax;
+                totalTaxPaid += tax;
+                monthNetInterest += net;
+                totalNetInterest += net;
+              } else {
+                // Annual Tax: Gross compounds during cycle
+                currentBalance += accruedInterestCycle;
+                yearAccruedGrossInterest += accruedInterestCycle;
+                monthNetInterest += accruedInterestCycle;
+                totalNetInterest += accruedInterestCycle;
+              }
+            } else {
+              currentBalance += accruedInterestCycle;
+              monthNetInterest += accruedInterestCycle;
+              totalNetInterest += accruedInterestCycle;
+            }
+            accruedInterestCycle = 0;
+          }
+
+          // 3. Annual Tax Deduction (if taxTiming === 'annual' and year-end)
+          if (isTaxActive && taxTiming === 'annual' && isMonthEnd && isYearEnd && yearAccruedGrossInterest > 0) {
+            const tax = yearAccruedGrossInterest * (taxRatePct / 100);
+            currentBalance -= tax;
+            monthTaxDeducted += tax;
+            totalTaxPaid += tax;
+            monthNetInterest -= tax; // Adjust monthly net to reflect annual tax withholding
+            totalNetInterest -= tax;
+            yearAccruedGrossInterest = 0;
+          }
+
+          // 4. End-of-period Contributions
+          if (contribTiming === 'end') {
+            if (isMonthEnd && (shouldDepositMonthly || shouldDepositQuarterly || shouldDepositHalfYearly || shouldDepositYearly)) {
+              currentBalance += activeContrib;
+              monthDeposits += activeContrib;
+              cumulativeDeposits += activeContrib;
+            } else if (contribFreq === 'weekly' && (dayCounter % 7 === 0)) {
+              currentBalance += activeContrib;
+              monthDeposits += activeContrib;
+              cumulativeDeposits += activeContrib;
+            } else if (contribFreq === 'biweekly' && (dayCounter % 14 === 0)) {
+              currentBalance += activeContrib;
+              monthDeposits += activeContrib;
+              cumulativeDeposits += activeContrib;
+            }
+          }
+
+          if (currentBalance < 0) currentBalance = 0;
+        } // End Day Loop
+
+        // Store Month Record
+        monthlyLedger.push({
+          periodIndex: m,
+          periodLabel: `Month ${m}`,
+          yearIndex: currentYear,
+          openingBalance: monthOpeningBalance,
+          deposits: monthDeposits,
+          grossInterest: monthGrossInterest,
+          taxDeducted: monthTaxDeducted,
+          netInterest: monthNetInterest,
+          endingBalance: currentBalance
+        });
+      } // End Month Loop
+
+      // Aggregate Yearly Ledger from Monthly Ledger
+      const totalYearsCount = Math.ceil(totalMonths / 12);
+      for (let y = 1; y <= totalYearsCount; y++) {
+        const startMonthIdx = (y - 1) * 12;
+        const endMonthIdx = Math.min(y * 12, totalMonths);
+        const yearMonths = monthlyLedger.slice(startMonthIdx, endMonthIdx);
+
+        if (yearMonths.length > 0) {
+          const yOpening = yearMonths[0].openingBalance;
+          const yEnding = yearMonths[yearMonths.length - 1].endingBalance;
+          const yDeposits = yearMonths.reduce((sum, r) => sum + r.deposits, 0);
+          const yGross = yearMonths.reduce((sum, r) => sum + r.grossInterest, 0);
+          const yTax = yearMonths.reduce((sum, r) => sum + r.taxDeducted, 0);
+          const yNet = yearMonths.reduce((sum, r) => sum + r.netInterest, 0);
+
+          yearlyLedger.push({
+            periodIndex: y,
+            periodLabel: `Year ${y}`,
+            yearIndex: y,
+            openingBalance: yOpening,
+            deposits: yDeposits,
+            grossInterest: yGross,
+            taxDeducted: yTax,
+            netInterest: yNet,
+            endingBalance: yEnding
+          });
+        }
+      }
+
+      // Calculate Effective APY
+      const compMap = {
+        daily365: 365,
+        daily360: 360,
+        weekly: 52,
+        biweekly: 26,
+        monthly: 12,
+        quarterly: 4,
+        halfyearly: 2,
+        yearly: 1
+      };
+      const n_comp = compMap[compoundingFreq] || 12;
+      const effectiveRatePeriod = isTaxActive ? nominalAnnualRate * (1 - taxRatePct / 100) : nominalAnnualRate;
+      const nominalApy = (Math.pow(1 + effectiveRatePeriod / n_comp, n_comp) - 1) * 100;
+
+      // Calculate Tax Drag recursively without reliance on previous cache
+      let taxDrag = 0;
+      if (isTaxActive && taxOverride === undefined) {
+        const noTaxResult = runDeterministicSimulation(false);
+        taxDrag = Math.max(0, noTaxResult.finalBalance - currentBalance);
+      }
+
+      return {
+        initialPrincipal,
+        finalBalance: currentBalance,
+        totalDeposits: cumulativeDeposits,
+        totalGrossInterest,
+        totalTaxPaid,
+        totalNetInterest,
+        effectiveApy: nominalApy,
+        taxDrag,
+        monthlyLedger,
+        yearlyLedger
+      };
+    }
+
+    function createEmptySimulation() {
+      return {
+        initialPrincipal: 0,
+        finalBalance: 0,
+        totalDeposits: 0,
+        totalGrossInterest: 0,
+        totalTaxPaid: 0,
+        totalNetInterest: 0,
+        effectiveApy: 0,
+        taxDrag: 0,
+        monthlyLedger: [],
+        yearlyLedger: []
+      };
+    }
+
+    /* ======================================================== */
+    /* MASTER RECALCULATE & DASHBOARD SYNC */
+    /* ======================================================== */
+    function recalculate() {
+      const res = runDeterministicSimulation();
+      state.simulationResult = res;
+
+      // Update KPI Cards
+      updateKpis(res);
+
+      // Update Chart
+      renderOrUpdateChart(res);
+
+      // Update Milestones & Insights
+      updateMilestones(res);
+
+      // Render Breakdown Table
+      renderTable();
+    }
+
+    function updateKpis(res) {
+      const finalBalanceEl = document.getElementById('kpiFinalBalance');
+      const grossInterestEl = document.getElementById('kpiGrossInterest');
+      const totalTaxEl = document.getElementById('kpiTotalTax');
+      const netInterestEl = document.getElementById('kpiNetInterest');
+      const totalInvestedEl = document.getElementById('kpiTotalInvested');
+      const effectiveApyEl = document.getElementById('kpiEffectiveApy');
+
+      finalBalanceEl.textContent = formatCurrency(res.finalBalance);
+      grossInterestEl.textContent = formatCurrency(res.totalGrossInterest);
+      totalTaxEl.textContent = formatCurrency(res.totalTaxPaid);
+      netInterestEl.textContent = formatCurrency(res.totalNetInterest);
+
+      const totalCapital = res.initialPrincipal + res.totalDeposits;
+      totalInvestedEl.textContent = formatCurrency(totalCapital);
+      effectiveApyEl.textContent = `${res.effectiveApy.toFixed(2)}%`;
+
+      // KPI Badges and Details
+      const growthPct = totalCapital > 0 ? ((res.finalBalance - totalCapital) / totalCapital) * 100 : 0;
+      const growthBadge = document.getElementById('kpiGrowthBadge');
+      growthBadge.textContent = `${growthPct >= 0 ? '+' : ''}${growthPct.toFixed(1)}%`;
+      growthBadge.className = `text-[10px] font-bold px-1.5 py-0.5 rounded font-mono ${
+        growthPct >= 0 
+          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+          : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+      }`;
+
+      const multiplier = res.initialPrincipal > 0 ? (res.finalBalance / res.initialPrincipal).toFixed(2) : '1.0';
+      document.getElementById('kpiMultiplierBadge').textContent = `${multiplier}x Initial Principal`;
+
+      // Tax KPI Subtext
+      const taxEffRate = res.totalGrossInterest > 0 ? (res.totalTaxPaid / res.totalGrossInterest) * 100 : 0;
+      document.getElementById('kpiTaxEffectiveRate').textContent = state.taxEnabled 
+        ? `${taxEffRate.toFixed(1)}% effective withholding` 
+        : 'Tax withholding disabled';
+
+      // Tax Drag Box
+      document.getElementById('taxDragAmount').textContent = formatCurrency(res.taxDrag);
+
+      // Contrib Portion Subtext
+      document.getElementById('kpiContribPortion').textContent = 
+        `${formatCurrency(res.initialPrincipal, state.currency, false)} + ${formatCurrency(res.totalDeposits, state.currency, false)} contrib.`;
+    }
+
+    function updateMilestones(res) {
+      // 1. Rule of 72 Doubling Time
+      const netRate = state.taxEnabled ? state.interestRate * (1 - state.taxRatePct / 100) : state.interestRate;
+      const doublingYears = netRate > 0 ? (72 / netRate).toFixed(1) : '∞';
+      document.getElementById('insightDoublingTime').textContent = `Doubles in ~${doublingYears} years`;
+
+      // 2. Milestone: Month/Year interest exceeds regular deposit
+      const activeDeposit = state.contribType === 'deposit' ? state.contribAmount : 0;
+      const crossoverEl = document.getElementById('insightCrossover');
+      if (activeDeposit > 0 && res.monthlyLedger.length > 0) {
+        const crossoverRow = res.monthlyLedger.find(r => r.netInterest >= activeDeposit);
+        if (crossoverRow) {
+          crossoverEl.textContent = `Interest > deposit in ${crossoverRow.periodLabel} (Yr ${crossoverRow.yearIndex})`;
+        } else {
+          crossoverEl.textContent = `Interest approaching deposit amount`;
+        }
+      } else {
+        crossoverEl.textContent = `Zero recurring deposits configured`;
+      }
+
+      // 3. Asset Composition Ratio Bar
+      const total = res.finalBalance;
+      if (total > 0) {
+        const principalPct = Math.max(0, (res.initialPrincipal / total) * 100);
+        const depositsPct = Math.max(0, (res.totalDeposits / total) * 100);
+        const interestPct = Math.max(0, (res.totalNetInterest / total) * 100);
+
+        document.getElementById('compBarPrincipal').style.width = `${principalPct}%`;
+        document.getElementById('compBarDeposits').style.width = `${depositsPct}%`;
+        document.getElementById('compBarInterest').style.width = `${interestPct}%`;
+
+        document.getElementById('compositionRatioText').textContent = 
+          `Principal: ${principalPct.toFixed(0)}% | Contrib: ${depositsPct.toFixed(0)}% | Net Interest: ${interestPct.toFixed(0)}%`;
+        
+        document.getElementById('insightMultiplier').textContent = 
+          `Net interest accounts for ${interestPct.toFixed(1)}% of total wealth`;
+      }
+    }
+
+    /* ======================================================== */
+    /* CHART.JS INTERACTIVE VISUALIZATION */
+    /* ======================================================== */
+    function renderOrUpdateChart(res) {
+      const ctx = document.getElementById('growthChart').getContext('2d');
+      const isDark = document.documentElement.classList.contains('dark');
+      
+      const gridColor = isDark ? 'rgba(51, 65, 85, 0.4)' : 'rgba(226, 232, 240, 0.8)';
+      const textColor = isDark ? '#94a3b8' : '#64748b';
+
+      const dataSources = res.yearlyLedger.length > 0 ? res.yearlyLedger : res.monthlyLedger;
+      const labels = dataSources.map(r => r.periodLabel);
+      
+      let runningPrincipal = [];
+      let runningDeposits = [];
+      let runningNetInterest = [];
+      let runningBalances = [];
+      let annualGrowthBars = [];
+
+      let cumDeposits = 0;
+      dataSources.forEach(r => {
+        cumDeposits += r.deposits;
+        runningPrincipal.push(res.initialPrincipal);
+        runningDeposits.push(Math.max(0, cumDeposits));
+        runningBalances.push(r.endingBalance);
+        const netInt = Math.max(0, r.endingBalance - res.initialPrincipal - cumDeposits);
+        runningNetInterest.push(netInt);
+        annualGrowthBars.push(r.netInterest);
+      });
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+
+      let chartConfig = {};
+
+      if (state.chartType === 'stackedArea') {
+        chartConfig = {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Initial Principal',
+                data: runningPrincipal,
+                fill: true,
+                backgroundColor: isDark ? 'rgba(100, 116, 139, 0.55)' : 'rgba(148, 163, 184, 0.45)',
+                borderColor: '#94a3b8',
+                borderWidth: 1.5,
+                tension: 0.3,
+                pointRadius: 0,
+                pointHitRadius: 10
+              },
+              {
+                label: 'Total Deposits',
+                data: runningDeposits,
+                fill: true,
+                backgroundColor: isDark ? 'rgba(99, 102, 241, 0.5)' : 'rgba(129, 140, 248, 0.4)',
+                borderColor: '#6366f1',
+                borderWidth: 1.5,
+                tension: 0.3,
+                pointRadius: 0,
+                pointHitRadius: 10
+              },
+              {
+                label: 'Accumulated Net Interest',
+                data: runningNetInterest,
+                fill: true,
+                backgroundColor: isDark ? 'rgba(16, 185, 129, 0.45)' : 'rgba(52, 211, 153, 0.35)',
+                borderColor: '#10b981',
+                borderWidth: 2,
+                tension: 0.3,
+                pointRadius: 0,
+                pointHitRadius: 10
+              }
+            ]
+          },
+          options: {
+            ...getCommonChartOptions(gridColor, textColor),
+            scales: {
+              x: {
+                grid: { color: gridColor },
+                ticks: { color: textColor, font: { family: 'Inter', size: 10 }, maxRotation: 45 }
+              },
+              y: {
+                stacked: true,
+                grid: { color: gridColor },
+                ticks: {
+                  color: textColor,
+                  font: { family: 'JetBrains Mono', size: 10 },
+                  callback: function(value) {
+                    return formatCompactCurrency(value);
+                  }
+                }
+              }
+            }
+          }
+        };
+      } else if (state.chartType === 'line') {
+        chartConfig = {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Total Balance',
+                data: runningBalances,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderWidth: 2.5,
+                tension: 0.25,
+                pointRadius: 3,
+                pointHoverRadius: 6
+              },
+              {
+                label: 'Total Invested Capital',
+                data: runningDeposits.map((d, i) => d + runningPrincipal[i]),
+                borderColor: '#818cf8',
+                borderDash: [5, 5],
+                borderWidth: 2,
+                tension: 0.25,
+                pointRadius: 0
+              },
+              {
+                label: 'Net Retained Interest',
+                data: runningNetInterest,
+                borderColor: '#10b981',
+                borderWidth: 2,
+                tension: 0.25,
+                pointRadius: 2
+              }
+            ]
+          },
+          options: getCommonChartOptions(gridColor, textColor)
+        };
+      } else if (state.chartType === 'bar') {
+        chartConfig = {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Net Interest in Period',
+                data: annualGrowthBars,
+                backgroundColor: '#10b981',
+                borderRadius: 4
+              },
+              {
+                label: 'Deposits in Period',
+                data: dataSources.map(r => r.deposits),
+                backgroundColor: '#6366f1',
+                borderRadius: 4
+              }
+            ]
+          },
+          options: getCommonChartOptions(gridColor, textColor)
+        };
+      }
+
+      chartInstance = new Chart(ctx, chartConfig);
+    }
+
+    function getCommonChartOptions(gridColor, textColor) {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              color: textColor,
+              font: { family: 'Inter', size: 11, weight: 600 },
+              usePointStyle: true,
+              boxWidth: 8
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            titleColor: '#f8fafc',
+            bodyColor: '#cbd5e1',
+            borderColor: '#334155',
+            borderWidth: 1,
+            padding: 10,
+            boxPadding: 4,
+            usePointStyle: true,
+            titleFont: { family: 'Inter', size: 12, weight: 'bold' },
+            bodyFont: { family: 'JetBrains Mono', size: 11 },
+            callbacks: {
+              label: function(context) {
+                let label = context.dataset.label || '';
+                if (label) label += ': ';
+                if (context.parsed.y !== null) {
+                  label += formatCurrency(context.parsed.y);
+                }
+                return label;
+              },
+              footer: function(tooltipItems) {
+                if (state.chartType === 'stackedArea') {
+                  let total = 0;
+                  tooltipItems.forEach(item => { total += item.parsed.y; });
+                  return `Total Balance: ${formatCurrency(total)}`;
+                }
+                return '';
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { family: 'Inter', size: 10 }, maxRotation: 45 }
+          },
+          y: {
+            grid: { color: gridColor },
+            ticks: {
+              color: textColor,
+              font: { family: 'JetBrains Mono', size: 10 },
+              callback: function(value) {
+                return formatCompactCurrency(value);
+              }
+            }
+          }
+        }
+      };
+    }
+
+    function setChartType(type) {
+      state.chartType = type;
+      ['chartBtnArea', 'chartBtnLine', 'chartBtnBar'].forEach(id => {
+        const btn = document.getElementById(id);
+        btn.classList.remove('bg-slate-700', 'text-white', 'shadow');
+        btn.classList.add('text-slate-500', 'dark:text-slate-400');
+      });
+
+      if (type === 'stackedArea') {
+        const btn = document.getElementById('chartBtnArea');
+        btn.classList.add('bg-slate-700', 'text-white', 'shadow');
+        btn.classList.remove('text-slate-500', 'dark:text-slate-400');
+      } else if (type === 'line') {
+        const btn = document.getElementById('chartBtnLine');
+        btn.classList.add('bg-slate-700', 'text-white', 'shadow');
+        btn.classList.remove('text-slate-500', 'dark:text-slate-400');
+      } else if (type === 'bar') {
+        const btn = document.getElementById('chartBtnBar');
+        btn.classList.add('bg-slate-700', 'text-white', 'shadow');
+        btn.classList.remove('text-slate-500', 'dark:text-slate-400');
+      }
+
+      if (state.simulationResult) {
+        renderOrUpdateChart(state.simulationResult);
+      }
+    }
+
+    /* ======================================================== */
+    /* BREAKDOWN TABLE RENDERER */
+    /* ======================================================== */
+    function setTableMode(mode) {
+      state.tableMode = mode;
+      state.tablePage = 1;
+
+      const yearlyBtn = document.getElementById('tabYearlyBtn');
+      const monthlyBtn = document.getElementById('tabMonthlyBtn');
+
+      if (mode === 'yearly') {
+        yearlyBtn.className = 'px-3 py-1 rounded-lg font-bold text-white bg-brand-600 shadow transition';
+        monthlyBtn.className = 'px-3 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition';
+      } else {
+        monthlyBtn.className = 'px-3 py-1 rounded-lg font-bold text-white bg-brand-600 shadow transition';
+        yearlyBtn.className = 'px-3 py-1 rounded-lg font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition';
+      }
+
+      renderTable();
+    }
+
+    function renderTable() {
+      if (!state.simulationResult) return;
+      
+      const ledger = state.tableMode === 'yearly' 
+        ? state.simulationResult.yearlyLedger 
+        : state.simulationResult.monthlyLedger;
+
+      const tbody = document.getElementById('breakdownTableBody');
+      tbody.innerHTML = '';
+
+      const totalRows = ledger.length;
+      const totalPages = Math.ceil(totalRows / state.rowsPerPage) || 1;
+      state.tablePage = Math.max(1, Math.min(state.tablePage, totalPages));
+
+      const startIndex = (state.tablePage - 1) * state.rowsPerPage;
+      const pageRows = ledger.slice(startIndex, startIndex + state.rowsPerPage);
+
+      pageRows.forEach((row) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors';
+
+        tr.innerHTML = `
+          <td class="py-2.5 px-3.5 font-bold text-slate-900 dark:text-slate-200 whitespace-nowrap">${row.periodLabel}</td>
+          <td class="py-2.5 px-3.5 text-right font-mono text-slate-700 dark:text-slate-300">${formatCurrency(row.openingBalance)}</td>
+          <td class="py-2.5 px-3.5 text-right font-mono font-medium ${row.deposits >= 0 ? 'text-slate-700 dark:text-slate-300' : 'text-rose-600 dark:text-rose-400'}">
+            ${row.deposits > 0 ? '+' : ''}${formatCurrency(row.deposits)}
+          </td>
+          <td class="py-2.5 px-3.5 text-right font-mono text-emerald-600 dark:text-emerald-400 font-bold">${formatCurrency(row.grossInterest)}</td>
+          <td class="py-2.5 px-3.5 text-right font-mono text-rose-600 dark:text-rose-400 font-medium">${formatCurrency(row.taxDeducted)}</td>
+          <td class="py-2.5 px-3.5 text-right font-mono text-brand-600 dark:text-brand-400 font-bold">${formatCurrency(row.netInterest)}</td>
+          <td class="py-2.5 px-3.5 text-right font-mono text-slate-900 dark:text-white font-extrabold">${formatCurrency(row.endingBalance)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Render Totals Row
+      const totalsRow = document.getElementById('tableTotalsRow');
+      const totalDeposits = ledger.reduce((sum, r) => sum + r.deposits, 0);
+      const totalGross = ledger.reduce((sum, r) => sum + r.grossInterest, 0);
+      const totalTax = ledger.reduce((sum, r) => sum + r.taxDeducted, 0);
+      const totalNet = ledger.reduce((sum, r) => sum + r.netInterest, 0);
+      const finalEnd = ledger.length > 0 ? ledger[ledger.length - 1].endingBalance : 0;
+
+      totalsRow.innerHTML = `
+        <td class="py-3 px-3.5 text-slate-900 dark:text-white uppercase text-[11px] font-extrabold">Total (${ledger.length} Periods)</td>
+        <td class="py-3 px-3.5 text-right text-slate-400 font-mono">-</td>
+        <td class="py-3 px-3.5 text-right font-mono text-slate-900 dark:text-slate-100 font-bold">${totalDeposits >= 0 ? '+' : ''}${formatCurrency(totalDeposits)}</td>
+        <td class="py-3 px-3.5 text-right font-mono text-emerald-600 dark:text-emerald-400 font-extrabold">${formatCurrency(totalGross)}</td>
+        <td class="py-3 px-3.5 text-right font-mono text-rose-600 dark:text-rose-400 font-extrabold">${formatCurrency(totalTax)}</td>
+        <td class="py-3 px-3.5 text-right font-mono text-brand-600 dark:text-brand-400 font-extrabold">${formatCurrency(totalNet)}</td>
+        <td class="py-3 px-3.5 text-right font-mono text-slate-900 dark:text-white font-extrabold text-sm">${formatCurrency(finalEnd)}</td>
+      `;
+
+      // Update Pagination UI
+      document.getElementById('tableRecordStats').textContent = 
+        `Showing ${startIndex + 1} to ${Math.min(startIndex + state.rowsPerPage, totalRows)} of ${totalRows} ${state.tableMode} records`;
+      document.getElementById('pageIndicator').textContent = `Page ${state.tablePage} / ${totalPages}`;
+      
+      document.getElementById('prevPageBtn').disabled = (state.tablePage <= 1);
+      document.getElementById('nextPageBtn').disabled = (state.tablePage >= totalPages);
+    }
+
+    function changeTablePage(delta) {
+      state.tablePage += delta;
+      renderTable();
+    }
+
+    /* ======================================================== */
+    /* EXPORT & SHARING SUITE (CSV, TSV CLIPBOARD, PRINT) */
+    /* ======================================================== */
+    function exportToCSV() {
+      if (!state.simulationResult) return;
+      
+      const ledger = state.tableMode === 'yearly' 
+        ? state.simulationResult.yearlyLedger 
+        : state.simulationResult.monthlyLedger;
+
+      let csv = `Period,Opening Balance,Deposits / Withdrawals,Gross Interest,Tax Deducted,Net Interest,Ending Balance\r\n`;
+
+      ledger.forEach(r => {
+        csv += `"${r.periodLabel}",${r.openingBalance.toFixed(2)},${r.deposits.toFixed(2)},${r.grossInterest.toFixed(2)},${r.taxDeducted.toFixed(2)},${r.netInterest.toFixed(2)},${r.endingBalance.toFixed(2)}\r\n`;
+      });
+
+      const totalDeposits = ledger.reduce((sum, r) => sum + r.deposits, 0);
+      const totalGross = ledger.reduce((sum, r) => sum + r.grossInterest, 0);
+      const totalTax = ledger.reduce((sum, r) => sum + r.taxDeducted, 0);
+      const totalNet = ledger.reduce((sum, r) => sum + r.netInterest, 0);
+      const finalEnd = ledger.length > 0 ? ledger[ledger.length - 1].endingBalance : 0;
+      csv += `"TOTAL",-,${totalDeposits.toFixed(2)},${totalGross.toFixed(2)},${totalTax.toFixed(2)},${totalNet.toFixed(2)},${finalEnd.toFixed(2)}\r\n`;
+
+      const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `compound_interest_${state.tableMode}_breakdown.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('Exported CSV spreadsheet successfully!');
+    }
+
+    function copyTableToClipboard() {
+      if (!state.simulationResult) return;
+      
+      const ledger = state.tableMode === 'yearly' 
+        ? state.simulationResult.yearlyLedger 
+        : state.simulationResult.monthlyLedger;
+
+      let tsv = `Period\tOpening Balance\tDeposits / Withdrawals\tGross Interest\tTax Deducted\tNet Interest\tEnding Balance\n`;
+
+      ledger.forEach(r => {
+        tsv += `${r.periodLabel}\t${r.openingBalance.toFixed(2)}\t${r.deposits.toFixed(2)}\t${r.grossInterest.toFixed(2)}\t${r.taxDeducted.toFixed(2)}\t${r.netInterest.toFixed(2)}\t${r.endingBalance.toFixed(2)}\n`;
+      });
+
+      navigator.clipboard.writeText(tsv).then(() => {
+        showToast(`Copied ${ledger.length} rows to clipboard! Ready to paste into Excel.`);
+      }).catch(() => {
+        showToast('Failed to copy. Please allow clipboard permissions.');
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotification');
+      document.getElementById('toastMessage').textContent = msg;
+      toast.classList.remove('translate-y-16', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-16', 'opacity-0');
+      }, 3000);
+    }
+
+    /* ======================================================== */
+    /* SCENARIO PRESETS & RESET */
+    /* ======================================================== */
+    function loadScenario(type) {
+      document.getElementById('scenarioDropdown').classList.add('hidden');
+
+      if (type === 'sp500') {
+        state.currency = '$';
+        state.initialPrincipal = 10000;
+        state.interestRate = 10.0;
+        state.ratePeriod = 'annual';
+        state.compoundingFreq = 'monthly';
+        state.years = 20;
+        state.months = 0;
+        state.contribType = 'deposit';
+        state.contribAmount = 500;
+        state.contribFreq = 'monthly';
+        state.contribTiming = 'end';
+        state.annualStepUpPct = 2.0;
+        state.taxEnabled = true;
+        state.taxRatePct = 15.0;
+        state.taxTiming = 'cycle';
+      } else if (type === 'hysa') {
+        state.currency = '$';
+        state.initialPrincipal = 20000;
+        state.interestRate = 4.5;
+        state.ratePeriod = 'annual';
+        state.compoundingFreq = 'daily365';
+        state.years = 5;
+        state.months = 0;
+        state.contribType = 'deposit';
+        state.contribAmount = 1000;
+        state.contribFreq = 'monthly';
+        state.contribTiming = 'beginning';
+        state.annualStepUpPct = 0;
+        state.taxEnabled = true;
+        state.taxRatePct = 24.0;
+        state.taxTiming = 'cycle';
+      } else if (type === 'nestEgg') {
+        state.currency = '$';
+        state.initialPrincipal = 50000;
+        state.interestRate = 8.0;
+        state.ratePeriod = 'annual';
+        state.compoundingFreq = 'monthly';
+        state.years = 30;
+        state.months = 0;
+        state.contribType = 'deposit';
+        state.contribAmount = 750;
+        state.contribFreq = 'monthly';
+        state.contribTiming = 'beginning';
+        state.annualStepUpPct = 3.0;
+        state.taxEnabled = true;
+        state.taxRatePct = 20.0;
+        state.taxTiming = 'annual';
+      } else if (type === 'dividend') {
+        state.currency = '$';
+        state.initialPrincipal = 25000;
+        state.interestRate = 6.5;
+        state.ratePeriod = 'annual';
+        state.compoundingFreq = 'quarterly';
+        state.years = 15;
+        state.months = 0;
+        state.contribType = 'deposit';
+        state.contribAmount = 400;
+        state.contribFreq = 'monthly';
+        state.contribTiming = 'end';
+        state.annualStepUpPct = 0;
+        state.taxEnabled = true;
+        state.taxRatePct = 15.0;
+        state.taxTiming = 'cycle';
+      }
+
+      syncUIFromState();
+      recalculate();
+      showToast(`Loaded "${type}" scenario preset!`);
+    }
+
+    function resetDefaults() {
+      state.currency = '$';
+      state.initialPrincipal = 10000;
+      state.interestRate = 7.0;
+      state.ratePeriod = 'annual';
+      state.compoundingFreq = 'monthly';
+      state.years = 10;
+      state.months = 0;
+      state.contribType = 'deposit';
+      state.contribAmount = 500;
+      state.contribFreq = 'monthly';
+      state.contribTiming = 'end';
+      state.annualStepUpPct = 0.0;
+      state.taxEnabled = false;
+      state.taxRatePct = 25.0;
+      state.taxTiming = 'cycle';
+
+      syncUIFromState();
+      recalculate();
+      showToast('Reset all parameters to default values.');
+    }
+
+    function syncUIFromState() {
+      document.getElementById('currencySelect').value = state.currency;
+      document.getElementById('customCurrencyInput').classList.add('hidden');
+      updateCurrencyAdornments();
+
+      document.getElementById('principalInput').value = state.initialPrincipal;
+      document.getElementById('interestRateInput').value = state.interestRate;
+      document.getElementById('ratePeriodSelect').value = state.ratePeriod;
+      updateRateDisplay();
+
+      document.getElementById('compoundFreqSelect').value = state.compoundingFreq;
+      updateCompoundFreqHelper();
+
+      document.getElementById('yearsInput').value = state.years;
+      document.getElementById('monthsInput').value = state.months;
+      document.getElementById('totalDurationDisplay').textContent = 
+        `${state.years} Years ${state.months > 0 ? state.months + ' Mo' : ''} (${state.years * 12 + state.months} Months)`;
+
+      // Contribution Radios
+      document.querySelectorAll('input[name="contribType"]').forEach(r => {
+        r.checked = (r.value === state.contribType);
+      });
+      document.getElementById('contribFieldsWrapper').style.display = state.contribType === 'none' ? 'none' : 'block';
+
+      document.getElementById('contribAmountInput').value = state.contribAmount;
+      document.getElementById('contribFreqSelect').value = state.contribFreq;
+
+      document.querySelectorAll('input[name="contribTiming"]').forEach(r => {
+        r.checked = (r.value === state.contribTiming);
+      });
+
+      document.getElementById('stepUpSlider').value = state.annualStepUpPct;
+      document.getElementById('stepUpInput').value = state.annualStepUpPct;
+      document.getElementById('stepUpDisplay').textContent = `${state.annualStepUpPct.toFixed(1)}% / yr`;
+
+      // Tax UI
+      document.getElementById('taxToggle').checked = state.taxEnabled;
+      const taxDetails = document.getElementById('taxDetailsSection');
+      if (state.taxEnabled) {
+        taxDetails.style.maxHeight = '500px';
+        taxDetails.style.opacity = '1';
+      } else {
+        taxDetails.style.maxHeight = '0px';
+        taxDetails.style.opacity = '0';
+      }
+
+      document.getElementById('taxRateSlider').value = state.taxRatePct;
+      document.getElementById('taxRateInput').value = state.taxRatePct;
+      document.getElementById('taxRateDisplay').textContent = `${state.taxRatePct.toFixed(1)}%`;
+
+      document.querySelectorAll('input[name="taxTiming"]').forEach(r => {
+        r.checked = (r.value === state.taxTiming);
+      });
+    }
+
+    /* ======================================================== */
+    /* UTILITY FORMATTERS */
+    /* ======================================================== */
+    function formatCurrency(val, symbol = state.currency, forceDecimals = true) {
+      if (val === undefined || val === null || isNaN(val)) return `${symbol}0.00`;
+      const isNegative = val < 0;
+      const absVal = Math.abs(val);
+
+      const parts = absVal.toFixed(forceDecimals ? 2 : 0).split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      
+      const formatted = parts.length > 1 ? `${parts[0]}.${parts[1]}` : parts[0];
+      return `${isNegative ? '-' : ''}${symbol}${formatted}`;
+    }
+
+    function formatCompactCurrency(val) {
+      if (val === undefined || val === null || isNaN(val)) return '0';
+      const absVal = Math.abs(val);
+      const sign = val < 0 ? '-' : '';
+      const sym = state.currency;
+
+      if (absVal >= 1e9) {
+        return `${sign}${sym}${(absVal / 1e9).toFixed(2)}B`;
+      }
+      if (absVal >= 1e6) {
+        return `${sign}${sym}${(absVal / 1e6).toFixed(2)}M`;
+      }
+      if (absVal >= 1e3) {
+        return `${sign}${sym}${(absVal / 1e3).toFixed(1)}k`;
+      }
+      return `${sign}${sym}${absVal.toFixed(0)}`;
+    }
+  </script>
+</body>
+</html>
